@@ -18,3 +18,14 @@ spring:
       cluster-nodes: localhost:9200     # ES 기본 포트
       repositories:
         enabled: true
+
+
+jwt:
+  secret: mySecretKey1234567890123456789012345678901234567890
+  access-token-expiration: 86400000
+  refresh-token-expiration: 604800000
+
+  spring:
+    redis:
+      host: localhost
+      port: 6379

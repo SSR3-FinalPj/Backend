@@ -1,8 +1,12 @@
 package org.example.ssj3pj.controller;
+
 import org.example.ssj3pj.dto.request.LoginRequest;
-import org.example.ssj3pj.dto.response.LoginResponse;
+import org.example.ssj3pj.dto.request.RefreshRequest;
+import org.example.ssj3pj.dto.response.TokenResponse;
 import org.example.ssj3pj.entity.Users;
 import org.example.ssj3pj.repository.UsersRepository;
+import org.example.ssj3pj.security.jwt.JwtUtils;
+import org.example.ssj3pj.services.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,9 +19,14 @@ public class AuthController {
 
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtils jwtUtils;
+    private final RefreshTokenService refreshTokenService;
 
+    /**
+     * 로그인 → Access + Refresh 토큰 발급
+     */
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
         Users user = usersRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
@@ -25,6 +34,37 @@ public class AuthController {
             throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
 
-        return ResponseEntity.ok(new LoginResponse("로그인 성공"));
+        String accessToken = jwtUtils.generateTokenFromUsername(user.getUsername());
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+
+        refreshTokenService.saveRefreshToken(
+                user.getUsername(),
+                refreshToken,
+                jwtUtils.getRefreshTokenExpiration()
+        );
+
+        return ResponseEntity.ok(new TokenResponse(accessToken, refreshToken));
+    }
+
+    /**
+     * RefreshToken 기반 AccessToken 재발급
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshAccessToken(@RequestBody RefreshRequest request) {
+        String refreshToken = request.refreshToken();
+
+        if (!jwtUtils.validateJwtToken(refreshToken)) {
+            return ResponseEntity.status(401).body("유효하지 않은 RefreshToken입니다.");
+        }
+
+        String username = jwtUtils.getUserNameFromJwtToken(refreshToken);
+
+        if (!refreshTokenService.isValidRefreshToken(username, refreshToken)) {
+            return ResponseEntity.status(401).body("저장된 RefreshToken과 일치하지 않습니다.");
+        }
+
+        String newAccessToken = jwtUtils.generateTokenFromUsername(username);
+
+        return ResponseEntity.ok(new TokenResponse(newAccessToken, refreshToken));
     }
 }
