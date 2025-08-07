@@ -8,13 +8,22 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
-    show-sql: true           # 콘솔에 SQL 쿼리 보여줌
+    show-sql: true
     properties:
       hibernate:
-        format_sql: true     # SQL 예쁘게 출력
+        format_sql: true
 
   data:
     elasticsearch:
-      cluster-nodes: localhost:9200     # ES 기본 포트
+      uris: ${ELASTICSEARCH_HOST:localhost:9200}   # ← 환경변수 없으면 localhost:9200 사용
       repositories:
         enabled: true
+
+  redis:
+    host: localhost
+    port: 6379
+
+jwt:
+  secret: mySecretKey1234567890123456789012345678901234567890
+  access-token-expiration: 86400000
+  refresh-token-expiration: 604800000
