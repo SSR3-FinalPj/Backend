@@ -27,3 +27,11 @@ jwt:
   secret: mySecretKey1234567890123456789012345678901234567890
   access-token-expiration: 86400000
   refresh-token-expiration: 604800000
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    display-request-duration: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs

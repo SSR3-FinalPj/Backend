@@ -1,5 +1,6 @@
 package org.example.ssj3pj.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.ssj3pj.dto.request.LoginRequest;
 import org.example.ssj3pj.dto.request.RefreshRequest;
 import org.example.ssj3pj.dto.response.TokenResponse;
@@ -25,6 +26,7 @@ public class AuthController {
     /**
      * 로그인 → Access + Refresh 토큰 발급
      */
+    @Tag(name = "Auth", description = "로그인/토큰 관리 API")
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
         Users user = usersRepository.findByUsername(request.getUsername())
@@ -49,6 +51,7 @@ public class AuthController {
     /**
      * RefreshToken 기반 AccessToken 재발급
      */
+    @Tag(name = "Auth", description = "리프레쉬 토큰 관련")
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshAccessToken(@RequestBody RefreshRequest request) {
         String refreshToken = request.refreshToken();

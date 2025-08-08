@@ -1,5 +1,6 @@
 package org.example.ssj3pj.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.services.VideoPromptSender;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +18,11 @@ public class VideoPromptController {
 
     private final VideoPromptSender videoPromptSender;
 
+    @Tag(name = "prompt-data-sender", description = "프롬프트 데이터 전송")
     @PostMapping("/send/{esDocId}")
     public ResponseEntity<String> sendPrompt(@PathVariable String esDocId) {
         videoPromptSender.sendEnvironmentDataToFastAPI(esDocId);
         return ResponseEntity.ok("✅ FastAPI 전송 요청 완료");
     }
 }
+    
