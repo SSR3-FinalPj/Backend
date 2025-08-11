@@ -73,7 +73,7 @@
 //        printSomeDocIds();
 //
 //        // 2. 특정 문서 ID로 조회 (원하는 값으로 바꿔보기)
-//        String esDocId = "Y5QSg5gB16D9HeeTnVoC";
+//        String esDocId = "05TPlpgB16D9HeeTwlti";
 //        fetchSingleDocument(esDocId);
 //    }
 //}

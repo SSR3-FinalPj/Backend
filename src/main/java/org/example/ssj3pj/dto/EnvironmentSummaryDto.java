@@ -23,7 +23,9 @@ public class EnvironmentSummaryDto {
     private String teenRate;          // 10대
     private String twentyRate;        // 20대
     private String thirtyRate;        // 30대
-    private String fourtyRate;        // 40대
+    private String fortyRate;        // 40대
     private String fiftyRate;        // 50대
+    private String sixtyRate;        // 60대
+    private String seventyRate;        // 70대
 
 }

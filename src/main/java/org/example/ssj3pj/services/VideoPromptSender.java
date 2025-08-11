@@ -7,30 +7,32 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-// 8.10 월요일에 수정해야함 - FastAPI 엔드포인트 맞추기
 @Service
 @RequiredArgsConstructor
 public class VideoPromptSender {
 
-    private final EnvironmentQueryService environmentQueryService;
+    private final EnvironmentQueryService environmentQueryService; // ES -> DTO
     private final RestTemplate restTemplate;
 
-    @Value("${AI_VIDEO_SERVER_URL}")
-    private String aiVideoServerUrl;
+    @Value("${BRIDGE_BASE_URL}")  // 예: http://127.0.0.1:8001
+    private String bridgeBaseUrl;
 
+    /**
+     * ES 문서 ID로 조회한 환경 요약 정보를 브릿지(FastAPI)로 전송
+     */
     public void sendEnvironmentDataToFastAPI(String esDocId) {
-        // 1. ES에서 환경 데이터 조회
-        EnvironmentSummaryDto dto = environmentQueryService.getEnvironmentByDocId(esDocId);
+        // 1) ES에서 DTO 조회
+        EnvironmentSummaryDto dto = environmentQueryService.getSummaryByDocId(esDocId);
 
-        // 2. FastAPI 서버 URL + 엔드포인트
-        String url = aiVideoServerUrl + "/api/generate-prompt";
+        // 2) 브릿지 엔드포인트
+        String url = bridgeBaseUrl + "/api/generate-prompts";
 
-        // 3. 전송
+        // 3) 전송
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(url, dto, String.class);
-            System.out.println("✅ FastAPI 응답: " + response.getBody());
+            System.out.println("✅ Bridge 응답: " + response.getBody());
         } catch (Exception e) {
-            System.out.println("❌ FastAPI 전송 실패: " + e.getMessage());
+            System.out.println("❌ Bridge 전송 실패: " + e.getMessage());
             e.printStackTrace();
         }
     }
