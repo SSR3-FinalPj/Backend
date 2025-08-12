@@ -12,6 +12,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   data:
     elasticsearch:
@@ -23,7 +25,28 @@ spring:
     host: localhost
     port: 6379
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: my-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "org.example.ssj3pj.dto.kafkamessage"
+    listener:
+      ack-mode: manual
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  topics:
+    kafka:
+      raw: my-topic
+
 jwt:
   secret: mySecretKey1234567890123456789012345678901234567890
   access-token-expiration: 86400000
   refresh-token-expiration: 604800000
+
