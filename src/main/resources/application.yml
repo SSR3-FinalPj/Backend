@@ -42,7 +42,7 @@ spring:
     client-secret: YOUR_CLIENT_SECRET
     redirect-uri: http://localhost:8080/api/google/callback
     token-uri: https://oauth2.googleapis.com/token
-
+    skew-seconds: 120
 
   kafka:
     bootstrap-servers: ${KAFKA_URL:localhost:9092}
