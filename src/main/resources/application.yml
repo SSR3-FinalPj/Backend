@@ -20,6 +20,13 @@ spring:
       uris: ${ELASTICSEARCH_HOST:localhost:9200}   # ← 환경변수 없으면 localhost:9200 사용
       repositories:
         enabled: true
+  # 도메인별 인덱스 이름만 분리
+  app:
+    es:
+      indices:
+        citydata: ${CITYDATA_INDEX:citydata}
+        reddit: ${REDDIT_INDEX:reddit_posts}
+        youtube: ${YOUTUBE_INDEX:youtube_videos}
 
   prompt:
     server:
@@ -31,7 +38,7 @@ spring:
     port: 6379
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_URL:localhost:9092}
     consumer:
       group-id: my-group
       auto-offset-reset: earliest
