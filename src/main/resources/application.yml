@@ -20,30 +20,6 @@ spring:
       uris: ${ELASTICSEARCH_HOST:localhost:9200}   # ← 환경변수 없으면 localhost:9200 사용
       repositories:
         enabled: true
-  # 도메인별 인덱스 이름만 분리
-  app:
-    es:
-      indices:
-        citydata: ${CITYDATA_INDEX:citydata}
-        reddit: ${REDDIT_INDEX:reddit_posts}
-        youtube: ${YOUTUBE_INDEX:youtube_videos}
-
-  prompt:
-    server:
-      base: ${AI_VIDEO_SERVER_URL:http://127.0.0.1:8001}
-      path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}   # ← 경로를 변수로
-
-  redis:
-    host: localhost
-    port: 6379
-
-  google:
-    client-id: YOUR_CLIENT_ID
-    client-secret: YOUR_CLIENT_SECRET
-    redirect-uri: http://localhost:8080/api/google/callback
-    token-uri: https://oauth2.googleapis.com/token
-    skew-seconds: 120
-
   kafka:
     bootstrap-servers: ${KAFKA_URL:localhost:9092}
     consumer:
@@ -77,3 +53,28 @@ springdoc:
     operations-sorter: alpha
   api-docs:
     path: /v3/api-docs
+
+
+  # 도메인별 인덱스 이름만 분리
+app:
+  es:
+    indices:
+      citydata: ${CITYDATA_INDEX:citydata}
+      reddit: ${REDDIT_INDEX:reddit_posts}
+      youtube: ${YOUTUBE_INDEX:youtube_videos}
+
+prompt:
+  server:
+    base: ${AI_VIDEO_SERVER_URL:http://127.0.0.1:8001}
+    path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}   # ← 경로를 변수로
+
+redis:
+  host: localhost
+  port: 6379
+
+google:
+  client-id: 500134374276-9gt50jh883gppicv571hifvbtqp9h735.apps.googleusercontent.com
+  client-secret: YOUR_CLIENT_SECRET
+  redirect-uri: http://localhost:8080/api/google/callback
+  token-uri: https://oauth2.googleapis.com/token
+  skew-seconds: 120
