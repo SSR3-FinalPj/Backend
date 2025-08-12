@@ -1,5 +1,5 @@
 // src/main/java/org/example/ssj3pj/seed/FastApiSendFromDbRunner.java
-package org.example.ssj3pj.config;
+package org.example.ssj3pj.config.runner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

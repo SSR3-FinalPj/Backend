@@ -1,4 +1,4 @@
-package org.example.ssj3pj.config;
+package org.example.ssj3pj.config.runner;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.entity.EnvironmentMetadata;
