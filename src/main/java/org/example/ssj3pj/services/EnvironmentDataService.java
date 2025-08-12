@@ -6,6 +6,9 @@ import org.example.ssj3pj.entity.EnvironmentMetadata;
 import org.example.ssj3pj.repository.EnvironmentMetadataRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -46,5 +49,21 @@ public class EnvironmentDataService {
                 .orElseThrow(() -> new IllegalArgumentException("DB에 없는 es_doc_id: " + esDocId));
 
         return environmentQueryService.getSummaryByDocId(esDocId);
+    }
+
+    /**
+     * 4) EnvironmentMetadata 저장
+     */
+    @Transactional
+    public void save(EnvironmentMetadata metadata) {
+        metadataRepository.save(metadata);
+    }
+
+    /**
+     * 5) EnvironmentMetadata 일괄 저장
+     */
+    @Transactional
+    public void saveAll(List<EnvironmentMetadata> metadataList) {
+        metadataRepository.saveAll(metadataList);
     }
 }
