@@ -1,4 +1,5 @@
 package org.example.ssj3pj.entity;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -6,11 +7,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "es_environment_metadata")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
 public class EnvironmentMetadata {
 
     @Id
@@ -20,13 +18,15 @@ public class EnvironmentMetadata {
     @Column(name = "es_doc_id", nullable = false, unique = true)
     private String esDocId;
 
-    @Column(name = "recorded_at", nullable = false)
-    private LocalDateTime recordedAt;
-
+    @Column(name = "location")
     private String location;
 
-    private String source;
+    @Column(name = "recorded_at")
+    private String recordedAt;          // 문자열로 저장되어 있다면 String 유지
 
     @Column(name = "indexed_at")
-    private LocalDateTime indexedAt = LocalDateTime.now();
+    private LocalDateTime indexedAt;
+
+    @Column(name = "source")
+    private String source;              // 예: "citydata"
 }

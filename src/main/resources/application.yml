@@ -21,6 +21,11 @@ spring:
       repositories:
         enabled: true
 
+  prompt:
+    server:
+      base: ${AI_VIDEO_SERVER_URL:http://127.0.0.1:8001}
+      path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}   # ← 경로를 변수로
+
   redis:
     host: localhost
     port: 6379
@@ -49,4 +54,11 @@ jwt:
   secret: mySecretKey1234567890123456789012345678901234567890
   access-token-expiration: 86400000
   refresh-token-expiration: 604800000
-
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+    display-request-duration: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
