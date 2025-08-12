@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.ssj3pj.dto.request.LoginRequest;
 import org.example.ssj3pj.dto.request.RefreshRequest;
 import org.example.ssj3pj.dto.response.TokenResponse;
-import org.example.ssj3pj.entity.Users;
+import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
 import org.example.ssj3pj.services.RefreshTokenService;

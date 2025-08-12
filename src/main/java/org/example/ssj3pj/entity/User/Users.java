@@ -1,4 +1,4 @@
-package org.example.ssj3pj.entity;
+package org.example.ssj3pj.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -20,4 +20,8 @@ public class Users {
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private GoogleToken googleToken;
+
 }

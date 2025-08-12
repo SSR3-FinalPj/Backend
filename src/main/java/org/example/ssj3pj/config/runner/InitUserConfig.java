@@ -1,5 +1,5 @@
 package org.example.ssj3pj.config.runner;
-import org.example.ssj3pj.entity.Users;
+import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
