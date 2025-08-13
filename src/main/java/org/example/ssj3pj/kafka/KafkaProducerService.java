@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
-@Service  // 다시 활성화
+@Service
 @RequiredArgsConstructor
 public class KafkaProducerService {
     private final KafkaTemplate<String, Object> kafkaTemplate;

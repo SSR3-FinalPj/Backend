@@ -2,9 +2,9 @@ package org.example.ssj3pj.controller;
 
 import org.example.ssj3pj.dto.kafkamessage.KafkaMessage;
 import org.example.ssj3pj.kafka.KafkaProducerService;
-// import org.example.ssj3pj.entity.KafkaMessageEntity;  // 주석처리
+import org.example.ssj3pj.entity.KafkaMessageEntity;
 import org.example.ssj3pj.entity.EnvironmentMetadata;
-// import org.example.ssj3pj.repository.KafkaMessageRepository;  // 주석처리
+import org.example.ssj3pj.repository.KafkaMessageRepository;
 import org.example.ssj3pj.repository.EnvironmentMetadataRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;

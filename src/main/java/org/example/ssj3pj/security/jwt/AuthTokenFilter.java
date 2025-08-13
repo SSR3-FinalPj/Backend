@@ -32,6 +32,13 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        // YouTube API 경로는 JWT 검증 건너뛰기
+        String path = request.getRequestURI();
+        if (path.startsWith("/api/youtube/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
             String jwt = parseJwt(request);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
