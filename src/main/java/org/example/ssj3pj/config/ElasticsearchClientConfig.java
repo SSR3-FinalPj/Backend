@@ -17,13 +17,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ElasticsearchClientConfig {
 
-    @Value("${ELASTICSEARCH_HOST}")
+    @Value("${ELASTICSEARCH_HOST:localhost:9200}")
     private String esHost;
 
-    @Value("${ELASTICSEARCH_USERNAME}")
+    @Value("${ELASTICSEARCH_USERNAME:}")
     private String esUsername;
 
-    @Value("${ELASTICSEARCH_PASSWORD}")
+    @Value("${ELASTICSEARCH_PASSWORD:}")
     private String esPassword;
     @Bean
     public ElasticsearchClient elasticsearchClient() {
