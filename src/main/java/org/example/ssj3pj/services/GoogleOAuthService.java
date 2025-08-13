@@ -1,12 +1,16 @@
 package org.example.ssj3pj.services;
 
 import lombok.RequiredArgsConstructor;
+import org.example.ssj3pj.dto.GoogleAccessTokenEvent;
 import org.example.ssj3pj.entity.User.GoogleToken;
 import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.kafka.GoogleTokenKafkaProducer;
 import org.example.ssj3pj.repository.GoogleTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
@@ -18,6 +22,7 @@ import java.util.Map;
 public class GoogleOAuthService {
 
     private final GoogleTokenRepository googleTokenRepository;
+    private final GoogleTokenKafkaProducer tokenKafkaProducer;
 
     @Value("${google.client-id}")
     private String clientId;
@@ -38,14 +43,14 @@ public class GoogleOAuthService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        Map<String, String> params = new HashMap<>();
-        params.put("code", code);
-        params.put("client_id", clientId);
-        params.put("client_secret", clientSecret);
-        params.put("redirect_uri", redirectUri);
-        params.put("grant_type", "authorization_code");
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("code", code);
+        params.add("client_id", clientId);
+        params.add("client_secret", clientSecret);
+        params.add("redirect_uri", redirectUri);
+        params.add("grant_type", "authorization_code");
 
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(params, headers);
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 tokenUri,
@@ -53,7 +58,6 @@ public class GoogleOAuthService {
                 request,
                 Map.class
         );
-
         if (response.getStatusCode().is2xxSuccessful()) {
             Map body = response.getBody();
 
@@ -71,6 +75,16 @@ public class GoogleOAuthService {
                     .build();
 
             googleTokenRepository.save(token);
+
+            //accesstoken 토큰 발급 기준으로 카프카 발행
+            GoogleAccessTokenEvent evt = new GoogleAccessTokenEvent(
+                    user.getId(),
+                    "google",
+                    accessToken,
+                    expiresAt.getEpochSecond(),
+                    "issued"
+            );
+            tokenKafkaProducer.publish(evt);
         } else {
             throw new RuntimeException("Google OAuth 토큰 발급 실패");
         }
