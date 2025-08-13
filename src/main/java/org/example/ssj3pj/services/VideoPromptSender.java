@@ -14,7 +14,7 @@ public class VideoPromptSender {
     private final EnvironmentQueryService environmentQueryService; // ES -> DTO
     private final RestTemplate restTemplate;
 
-    @Value("${BRIDGE_BASE_URL}")  // 예: http://127.0.0.1:8001
+    @Value("${BRIDGE_BASE_URL:http://127.0.0.1:8001}")  // 기본값 추가
     private String bridgeBaseUrl;
 
     /**

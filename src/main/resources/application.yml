@@ -17,19 +17,17 @@ spring:
 
   data:
     elasticsearch:
-      uris: ${ELASTICSEARCH_HOST:localhost:9200}   # ← 환경변수 없으면 localhost:9200 사용
+      uris: localhost:9200
       repositories:
         enabled: true
   kafka:
     bootstrap-servers: ${KAFKA_URL:localhost:9092}
     consumer:
-      group-id: my-group
+      group-id: consumer-group
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "org.example.ssj3pj.dto.kafkamessage"
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     listener:
       ack-mode: manual
     producer:
@@ -38,7 +36,7 @@ spring:
 
   topics:
     kafka:
-      raw: my-topic
+      raw: citydata
 
 jwt:
   secret: mySecretKey1234567890123456789012345678901234567890
