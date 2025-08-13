@@ -37,6 +37,7 @@ spring:
   topics:
     kafka:
       raw: citydata
+      googleAccessToken: googleToken
 
 jwt:
   secret: mySecretKey1234567890123456789012345678901234567890
@@ -72,7 +73,7 @@ redis:
 
 google:
   client-id: 500134374276-9gt50jh883gppicv571hifvbtqp9h735.apps.googleusercontent.com
-  client-secret: YOUR_CLIENT_SECRET
+  client-secret: ${YOUR_CLIENT_SECRET}
   redirect-uri: http://localhost:8080/api/google/callback
   token-uri: https://oauth2.googleapis.com/token
   skew-seconds: 120
