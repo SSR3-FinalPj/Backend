@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.GoogleOAuthService;
+import org.example.ssj3pj.services.OAuthStateService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +22,8 @@ public class GoogleAuthController {
 
     private final UsersRepository usersRepository;
     private final GoogleOAuthService googleOAuthService;
+    private final OAuthStateService oAuthStateService;
+
     @Value("${google.client-id}")
     private String clientId;
 
@@ -28,30 +31,40 @@ public class GoogleAuthController {
     private String redirectUri;
 
     @GetMapping("/login")
-    public void googleLoginRedirect(HttpServletResponse response) throws IOException {
-        String Uri = "https://accounts.google.com/o/oauth2/v2/auth"
+    public void googleLoginRedirect(HttpServletResponse response,
+                                    @AuthenticationPrincipal UserDetails userDetails) throws IOException {
+        Users user = usersRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없음"));
+
+        String state = oAuthStateService.issueState(user.getId());
+
+        String uri = "https://accounts.google.com/o/oauth2/v2/auth"
                 + "?client_id=" + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
                 + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
                 + "&response_type=code"
                 + "&scope=" + URLEncoder.encode("https://www.googleapis.com/auth/youtube.readonly", StandardCharsets.UTF_8)
                 + "&access_type=offline"
-                + "&prompt=consent";
+                + "&prompt=consent"
+                + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
 
-        response.sendRedirect(Uri);
+        response.sendRedirect(uri);
     }
 
 
     @GetMapping("/callback")
     public ResponseEntity<?> callback(@RequestParam String code,
-                                      @AuthenticationPrincipal UserDetails userDetails) {
-
-        // 1. 로그인된 유저 확인
-        Users user = usersRepository.findByUsername(userDetails.getUsername())
+                                      @RequestParam(required = false) String state) {
+        if (state == null || state.isBlank()) {
+            return ResponseEntity.badRequest().body("state 누락");
+        }
+        Long userId = oAuthStateService.consumeState(state);
+        if (userId == null) {
+            return ResponseEntity.badRequest().body("유효하지 않은 state(만료/위조/재사용)");
+        }
+        Users user = usersRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없음"));
 
-        // 2. 구글 토큰 요청 + 저장
         googleOAuthService.handleOAuthCallback(code, user);
-
         return ResponseEntity.ok("YouTube 계정 연동 완료");
     }
 }
