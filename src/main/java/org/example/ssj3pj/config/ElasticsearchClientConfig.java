@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ElasticsearchClientConfig {
 
-    @Value("${ELASTICSEARCH_HOST:219.255.15.170:9200}")
+    @Value("${ELASTICSEARCH_HOST}")
     private String esHost;
 
     @Value("${ELASTICSEARCH_USERNAME:}")
