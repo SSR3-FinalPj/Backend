@@ -15,4 +15,5 @@ public class GoogleAccessTokenEvent {
     private String accessToken;
     private long expiresAtEpochSec;
     private String event;
+    private String youtubeChannelId;
 }

@@ -31,19 +31,18 @@ public class GoogleTokenService {
      */
     @Transactional
     public String getValidAccessToken(Long userId) {
-        // 동시 갱신 방지: for update (레포에 쿼리 필요)
+        // 동시 갱신 방지: for update (레포에 메서드 필요)
         GoogleToken token = tokenRepo.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new IllegalStateException("Google 연동 정보 없음. userId=" + userId));
 
         Instant now = Instant.now();
         Instant threshold = now.plusSeconds(skewSeconds);
 
-        // 아직 충분히 유효하면 그대로 반환
+        // 만료 시간이 없거나 임박/만료이면 refresh, 아니면 그대로 반환
         if (token.getExpiresAt() != null && token.getExpiresAt().isAfter(threshold)) {
             return token.getAccessToken();
         }
 
-        // 만료 또는 임박 → refresh
         if (token.getRefreshToken() == null || token.getRefreshToken().isBlank()) {
             throw new IllegalStateException("refresh_token 없음: 재연동 필요. userId=" + userId);
         }
@@ -51,24 +50,26 @@ public class GoogleTokenService {
         GoogleTokenRefreshResponse res = refreshWith(token.getRefreshToken());
 
         token.setAccessToken(res.access_token());
-        token.setExpiresAt(now.plusSeconds(
-                res.expires_in() != null ? res.expires_in() : 3600L
-        ));
+        long expiresIn = res.expires_in() != null ? res.expires_in() : 3600L;
+        token.setExpiresAt(now.plusSeconds(expiresIn));
         token.setUpdatedAt(Instant.now());
 
-        // 드물게 새 refresh_token이 올 수 있어서 교체
+        // 드물게 새 refresh_token이 오면 교체
         if (res.refresh_token() != null && !res.refresh_token().isBlank()) {
             token.setRefreshToken(res.refresh_token());
         }
 
+        // 카프카 이벤트: DB에 저장된 youtubeChannelId 사용
         tokenProducer.publish(new GoogleAccessTokenEvent(
                 token.getUser().getId(),
                 "google",
                 token.getAccessToken(),
                 token.getExpiresAt().getEpochSecond(),
-                "refreshed"
+                "refreshed",
+                token.getYoutubeChannelId()
         ));
-        // @Transactional 이므로 커밋 시점에 flush
+
+        // @Transactional 이므로 커밋 시 flush
         return token.getAccessToken();
     }
 
@@ -76,7 +77,6 @@ public class GoogleTokenService {
         try {
             return googleOAuthClient.refreshAccessToken(refreshToken);
         } catch (RuntimeException e) {
-            // 여기서 invalid_grant 구분하고 싶으면 GoogleOAuthClient에서 메시지 파싱해 별도 예외 던지도록 개선
             throw new IllegalStateException("Google 토큰 갱신 실패: 재연동 필요", e);
         }
     }
