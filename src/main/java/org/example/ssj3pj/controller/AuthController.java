@@ -92,6 +92,7 @@ public class AuthController {
             String deviceId = (String) body.get("device");
             String jti      = body.getId();
 
+
             // 서버 저장된 현재 유효 jti 조회
             String currentJti = refreshStore.getJti(username, deviceId);
             if (currentJti == null) {
@@ -106,11 +107,19 @@ public class AuthController {
                 return ResponseEntity.status(401).body(Map.of("error", "Refresh token reuse detected"));
             }
 
+
             // 회전(rotate): 새 refresh/새 access 발급
             String newRJti     = UUID.randomUUID().toString();
             String newAJti     = UUID.randomUUID().toString();
             String newRefresh  = jwtUtils.createRefresh(username, deviceId, newRJti);
             String newAccess   = jwtUtils.createAccess(username, "USER", newAJti);
+
+            // AuthController.refresh() 맨 위
+            System.out.println("[auth] /refresh cookie.present=" + (refreshCookie != null));
+
+// 재발행 직전/직후
+            System.out.println("[auth] rotate start: jti=" + jti);
+            System.out.println("[auth] rotate done : new rjti=" + newRJti);
 
             Instant exp = jwtUtils.parse(newRefresh).getBody().getExpiration().toInstant();
             refreshStore.save(username, deviceId, newRJti, exp);
