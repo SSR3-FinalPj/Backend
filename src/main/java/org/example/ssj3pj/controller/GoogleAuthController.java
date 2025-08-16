@@ -41,7 +41,9 @@ public class GoogleAuthController {
      //권한 설정
      String scopes = String.join(" ",
              "https://www.googleapis.com/auth/youtube.readonly",
-             "https://www.googleapis.com/auth/yt-analytics.readonly"
+             "https://www.googleapis.com/auth/yt-analytics.readonly",
+             "https://www.googleapis.com/auth/youtube.upload"
+
      );
 
      String url = "https://accounts.google.com/o/oauth2/v2/auth"
