@@ -38,7 +38,7 @@ public class GoogleAuthController {
 
      String state = oAuthStateService.issueState(user.getId());
 
-     // ✅ 스코프: Data API(readonly) + Analytics(readonly)
+     //권한 설정
      String scopes = String.join(" ",
              "https://www.googleapis.com/auth/youtube.readonly",
              "https://www.googleapis.com/auth/yt-analytics.readonly"

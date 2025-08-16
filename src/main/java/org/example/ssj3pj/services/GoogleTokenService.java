@@ -24,11 +24,6 @@ public class GoogleTokenService {
     @Value("${google.skew-seconds}")
     private long skewSeconds;
 
-    /**
-     * 유튜브 API 호출 직전에 사용:
-     * - 만료 임박(<= skew) 또는 만료면 refresh
-     * - 유효하면 기존 access_token 반환
-     */
     @Transactional
     public String getValidAccessToken(Long userId) {
         // 동시 갱신 방지: for update (레포에 메서드 필요)
