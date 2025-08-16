@@ -9,6 +9,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Base64;
 
+// 구글 연동 state 변수로 보안
 @Service
 @RequiredArgsConstructor
 public class OAuthStateService {

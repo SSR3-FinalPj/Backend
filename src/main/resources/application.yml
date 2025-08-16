@@ -1,9 +1,26 @@
+server:
+  servlet:
+    session:
+      cookie:
+        name: SID
+        http-only: true
+        secure: false        # 로컬 http로 테스트면 일시적으로 false로
+        same-site: Lax
+
+jwt:
+  issuer: ssj3pj
+  secret: mySecretKey1234567890123456789012345678901234567890
+  access-token-expiration: 900000        # 15분 (ms)
+  refresh-token-expiration: 1209600000   # 14일 (ms)
+
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/youtube_db
     username: postgres
     password: pass1234
     driver-class-name: org.postgresql.Driver
+
 
   jpa:
     hibernate:
@@ -16,6 +33,9 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   data:
+    redis:
+      host: localhost
+      port: 6379
     elasticsearch:
       uris: localhost:9200
       repositories:
@@ -37,11 +57,11 @@ spring:
   topics:
     kafka:
       raw: citydata
+      googleAccessToken: googleToken
 
-jwt:
-  secret: mySecretKey1234567890123456789012345678901234567890
-  access-token-expiration: 86400000
-  refresh-token-expiration: 604800000
+
+
+
 
 springdoc:
   swagger-ui:
@@ -66,13 +86,11 @@ prompt:
     base: ${AI_VIDEO_SERVER_URL:http://127.0.0.1:8001}
     path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}   # ← 경로를 변수로
 
-redis:
-  host: localhost
-  port: 6379
+
 
 google:
   client-id: 500134374276-9gt50jh883gppicv571hifvbtqp9h735.apps.googleusercontent.com
-  client-secret: YOUR_CLIENT_SECRET
+  client-secret: ${YOUR_CLIENT_SECRET}
   redirect-uri: http://localhost:8080/api/google/callback
   token-uri: https://oauth2.googleapis.com/token
   skew-seconds: 120

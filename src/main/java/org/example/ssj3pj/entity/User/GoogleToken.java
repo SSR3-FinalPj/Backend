@@ -11,6 +11,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "google_token")
 public class GoogleToken {
 
     @Id
@@ -24,11 +25,16 @@ public class GoogleToken {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String accessToken;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    // 🔁 재동의 받기 전엔 null일 수 있어 null 허용 권장
+    @Column(nullable = true, columnDefinition = "TEXT")
     private String refreshToken;
 
     @Column(nullable = false)
     private Instant expiresAt;
+
+    // ✅ 추가: YouTube 채널 ID (고정 식별자)
+    @Column(length = 64)
+    private String youtubeChannelId;
 
     @Column(nullable = false)
     private Instant createdAt;

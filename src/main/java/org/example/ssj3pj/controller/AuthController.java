@@ -1,17 +1,26 @@
 package org.example.ssj3pj.controller;
 
+import io.jsonwebtoken.Claims;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.request.LoginRequest;
-import org.example.ssj3pj.dto.request.RefreshRequest;
+// import org.example.ssj3pj.dto.request.RefreshRequest; // 더 이상 필요 없음 (쿠키 사용)
 import org.example.ssj3pj.dto.response.TokenResponse;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
-import org.example.ssj3pj.services.RefreshTokenService;
-import lombok.RequiredArgsConstructor;
+import org.example.ssj3pj.redis.RefreshStoreRedis; // ★ Step4에서 만든 Redis 저장소
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,14 +30,16 @@ public class AuthController {
     private final UsersRepository usersRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
-    private final RefreshTokenService refreshTokenService;
+    private final RefreshStoreRedis refreshStore; // ★ Redis에 jti/만료/디바이스 저장
 
     /**
-     * 로그인 → Access + Refresh 토큰 발급
+     * 로그인 → Access(JSON) + Refresh(HttpOnly 쿠키) 발급
      */
     @Tag(name = "Auth", description = "로그인/토큰 관리 API")
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request,
+                                               @RequestHeader(value = "User-Agent", required = false) String ua,
+                                               HttpServletResponse res) {
         Users user = usersRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
@@ -36,38 +47,121 @@ public class AuthController {
             throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
 
-        String accessToken = jwtUtils.generateTokenFromUsername(user.getUsername());
-        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+        // 디바이스 식별 (간단 버전: UA 해시)
+        String deviceId = Integer.toHexString((ua == null ? "unknown" : ua).hashCode());
 
-        refreshTokenService.saveRefreshToken(
-                user.getUsername(),
-                refreshToken,
-                jwtUtils.getRefreshTokenExpiration()
-        );
+        // jti 생성
+        String rJti = UUID.randomUUID().toString();
+        String aJti = UUID.randomUUID().toString();
 
-        return ResponseEntity.ok(new TokenResponse(accessToken, refreshToken));
+        // Refresh(쿠키용) + Access(JSON용) 생성
+        // role 없으면 "USER" 등 기본값 사용
+        String refreshToken = jwtUtils.createRefresh(user.getUsername(), deviceId, rJti);
+        String accessToken  = jwtUtils.createAccess(user.getUsername(), "USER", aJti);
+
+        // Redis에 현재 유효한 refresh jti 저장(+TTL)
+        Instant refreshExp = jwtUtils.parse(refreshToken).getBody().getExpiration().toInstant();
+        refreshStore.save(user.getUsername(), deviceId, rJti, refreshExp);
+
+        // HttpOnly Refresh 쿠키 세팅 (개발 환경에서 HTTPS가 아니면 secure(false)로 임시 테스트)
+        ResponseCookie cookie = ResponseCookie.from("rt", refreshToken)
+                .httpOnly(true).secure(true).sameSite("Strict")
+                .path("/api/auth") // 최소 범위
+                .maxAge(Duration.between(Instant.now(), refreshExp))
+                .build();
+        res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        // 응답 바디엔 Access만 내려주세요(기존 DTO 호환 위해 refresh=null로 반환)
+        return ResponseEntity.ok(new TokenResponse(accessToken, null));
     }
 
     /**
-     * RefreshToken 기반 AccessToken 재발급
+     * Refresh 쿠키 기반 AccessToken 재발급(회전+재사용 감지)
      */
-    @Tag(name = "Auth", description = "리프레쉬 토큰 관련")
+    @Tag(name = "Auth", description = "리프레시 토큰 관련")
     @PostMapping("/refresh")
-    public ResponseEntity<?> refreshAccessToken(@RequestBody RefreshRequest request) {
-        String refreshToken = request.refreshToken();
-
-        if (!jwtUtils.validateJwtToken(refreshToken)) {
-            return ResponseEntity.status(401).body("유효하지 않은 RefreshToken입니다.");
+    public ResponseEntity<?> refreshAccessToken(@CookieValue(name = "rt", required = false) String refreshCookie,
+                                                HttpServletResponse res) {
+        if (refreshCookie == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Refresh cookie not found"));
         }
 
-        String username = jwtUtils.getUserNameFromJwtToken(refreshToken);
+        try {
+            Claims body = jwtUtils.parse(refreshCookie).getBody();
+            String username = body.getSubject();
+            String deviceId = (String) body.get("device");
+            String jti      = body.getId();
 
-        if (!refreshTokenService.isValidRefreshToken(username, refreshToken)) {
-            return ResponseEntity.status(401).body("저장된 RefreshToken과 일치하지 않습니다.");
+
+            // 서버 저장된 현재 유효 jti 조회
+            String currentJti = refreshStore.getJti(username, deviceId);
+            if (currentJti == null) {
+                expireCookie(res);
+                return ResponseEntity.status(401).body(Map.of("error", "No active refresh session"));
+            }
+
+            // 재사용 감지: 쿠키 jti != Redis jti → 탈취 의심 → 전체 강제 로그아웃
+            if (!jti.equals(currentJti)) {
+                refreshStore.revokeAll(username);
+                expireCookie(res);
+                return ResponseEntity.status(401).body(Map.of("error", "Refresh token reuse detected"));
+            }
+
+
+            // 회전(rotate): 새 refresh/새 access 발급
+            String newRJti     = UUID.randomUUID().toString();
+            String newAJti     = UUID.randomUUID().toString();
+            String newRefresh  = jwtUtils.createRefresh(username, deviceId, newRJti);
+            String newAccess   = jwtUtils.createAccess(username, "USER", newAJti);
+
+            // AuthController.refresh() 맨 위
+            System.out.println("[auth] /refresh cookie.present=" + (refreshCookie != null));
+
+// 재발행 직전/직후
+            System.out.println("[auth] rotate start: jti=" + jti);
+            System.out.println("[auth] rotate done : new rjti=" + newRJti);
+
+            Instant exp = jwtUtils.parse(newRefresh).getBody().getExpiration().toInstant();
+            refreshStore.save(username, deviceId, newRJti, exp);
+
+            // 새 쿠키로 교체
+            res.addHeader(HttpHeaders.SET_COOKIE,
+                    ResponseCookie.from("rt", newRefresh)
+                            .httpOnly(true).secure(true).sameSite("Strict")
+                            .path("/api/auth").maxAge(Duration.between(Instant.now(), exp)).build()
+                            .toString()
+            );
+// secure false-> true로 바꾸기
+            // Access만 반환
+            return ResponseEntity.ok(new TokenResponse(newAccess, null));
+        } catch (Exception e) {
+            expireCookie(res);
+            return ResponseEntity.status(401).body(Map.of("error", "Invalid refresh token"));
         }
+    }
 
-        String newAccessToken = jwtUtils.generateTokenFromUsername(username);
-
-        return ResponseEntity.ok(new TokenResponse(newAccessToken, refreshToken));
+    /**
+     * 로그아웃: 현재 디바이스 refresh 무효화 + 쿠키 제거
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@CookieValue(name = "rt", required = false) String refreshCookie,
+                                    HttpServletResponse res) {
+        if (refreshCookie != null) {
+            Claims body = jwtUtils.parse(refreshCookie).getBody();
+            String username = body.getSubject();
+            String deviceId = (String) body.get("device");
+            refreshStore.delete(username, deviceId);
+        }
+        expireCookie(res);
+        return ResponseEntity.ok().build();
+    }
+// secure false-> true로 바꾸기
+    private void expireCookie(HttpServletResponse res) {
+        res.addHeader(HttpHeaders.SET_COOKIE,
+                ResponseCookie.from("rt", "")
+                        .httpOnly(true).secure(false).sameSite("Strict")
+                        .path("/api/auth").maxAge(0).build()
+                        .toString()
+        );
     }
 }

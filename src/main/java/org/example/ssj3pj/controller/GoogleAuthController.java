@@ -30,6 +30,35 @@ public class GoogleAuthController {
     @Value("${google.redirect-uri}")
     private String redirectUri;
 
+ // google url 전송
+ @GetMapping("/login-url")
+ public ResponseEntity<String> getGoogleLoginUrl(@AuthenticationPrincipal UserDetails userDetails) {
+     Users user = usersRepository.findByUsername(userDetails.getUsername())
+             .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없음"));
+
+     String state = oAuthStateService.issueState(user.getId());
+
+     //권한 설정
+     String scopes = String.join(" ",
+             "https://www.googleapis.com/auth/youtube.readonly",
+             "https://www.googleapis.com/auth/yt-analytics.readonly"
+     );
+
+     String url = "https://accounts.google.com/o/oauth2/v2/auth"
+             + "?client_id=" + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
+             + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
+             + "&response_type=code"
+             + "&scope=" + URLEncoder.encode(scopes, StandardCharsets.UTF_8)
+             + "&access_type=offline"
+             + "&include_granted_scopes=true"
+             + "&prompt=consent"
+             + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
+
+     return ResponseEntity.ok(url);
+ }
+
+
+
     @GetMapping("/login")
     public void googleLoginRedirect(HttpServletResponse response,
                                     @AuthenticationPrincipal UserDetails userDetails) throws IOException {
@@ -54,6 +83,8 @@ public class GoogleAuthController {
     @GetMapping("/callback")
     public ResponseEntity<?> callback(@RequestParam String code,
                                       @RequestParam(required = false) String state) {
+        System.out.println("[callback] arrived, state=" + state + " code=" + (code != null ? code.substring(0,8)+"..." : "null"));
+
         if (state == null || state.isBlank()) {
             return ResponseEntity.badRequest().body("state 누락");
         }
