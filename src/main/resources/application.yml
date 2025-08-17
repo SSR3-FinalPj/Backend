@@ -59,6 +59,11 @@ spring:
       raw: citydata
       googleAccessToken: googleToken
 
+youtube:
+  upload:
+    chunk-size-bytes: 8388608    # 8MB
+    connect-timeout-ms: 10000    # 10s
+    read-timeout-ms: 600000      # 10m (대용량 업로드 대비)
 
 
 
