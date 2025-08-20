@@ -3,8 +3,10 @@ package org.example.ssj3pj.controller;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.example.ssj3pj.dto.GoogleLinkSimpleDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
+import org.example.ssj3pj.services.GoogleLinkStatusService;
 import org.example.ssj3pj.services.GoogleOAuthService;
 import org.example.ssj3pj.services.OAuthStateService;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,7 @@ public class GoogleAuthController {
     private final UsersRepository usersRepository;
     private final GoogleOAuthService googleOAuthService;
     private final OAuthStateService oAuthStateService;
+    private final GoogleLinkStatusService statusService;
 
     @Value("${google.client-id}")
     private String clientId;
@@ -61,6 +64,13 @@ public class GoogleAuthController {
      return ResponseEntity.ok(url);
  }
 
+    @Tag(name = "googlestatus", description = "연동확인")
+    @GetMapping("/status")
+    public ResponseEntity<GoogleLinkSimpleDto> status(@AuthenticationPrincipal UserDetails userDetails) {
+        Users user = usersRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+        return ResponseEntity.ok(statusService.getStatus(user.getId()));
+    }
 
 //
 //    @GetMapping("/login")
