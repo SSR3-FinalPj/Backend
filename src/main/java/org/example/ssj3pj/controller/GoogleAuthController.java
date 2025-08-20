@@ -83,21 +83,32 @@ public class GoogleAuthController {
 
 
     @GetMapping("/callback")
-    public ResponseEntity<?> callback(@RequestParam String code,
-                                      @RequestParam(required = false) String state) {
+    public void callback(@RequestParam String code,
+                         @RequestParam(required = false) String state,
+                         HttpServletResponse response) throws IOException {
         System.out.println("[callback] arrived, state=" + state + " code=" + (code != null ? code.substring(0,8)+"..." : "null"));
 
         if (state == null || state.isBlank()) {
-            return ResponseEntity.badRequest().body("state 누락");
+            response.getWriter().write("state 누락");
+            return;
         }
+
         Long userId = oAuthStateService.consumeState(state);
         if (userId == null) {
-            return ResponseEntity.badRequest().body("유효하지 않은 state(만료/위조/재사용)");
+            response.getWriter().write("유효하지 않은 state(만료/위조/재사용)");
+            return;
         }
+
         Users user = usersRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없음"));
 
         googleOAuthService.handleOAuthCallback(code, user);
-        return ResponseEntity.ok("YouTube 계정 연동 완료");
+
+        // ✅ HTML + JS로 응답해서 부모창에 알리고, 팝업 닫기
+        String html = """
+        """;
+
+        response.setContentType("text/html;charset=UTF-8");
+        response.getWriter().write(html);
     }
 }
