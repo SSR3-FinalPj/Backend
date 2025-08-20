@@ -99,3 +99,17 @@ google:
   redirect-uri: http://localhost:8080/api/google/callback
   token-uri: https://oauth2.googleapis.com/token
   skew-seconds: 120
+
+reddit:
+  client-id: ${REDDIT_CLIENT_ID}
+  client-secret: ${REDDIT_CLIENT_SECRET}
+  user-agent: SSRPJ3/1.0 by Classic_Run_4414
+  authorize-url: https://www.reddit.com/api/v1/authorize
+  token-url: https://www.reddit.com/api/v1/access_token
+  api-base: https://oauth.reddit.com
+  redirect-uri: ${REDDIT_REDIRECT_URI:http://localhost:8080/oauth/reddit/callback}
+  scopes: identity read submit                 # 필요 스코프 공백 구분
+
+security:
+  oauth:
+    state-ttl-seconds: 600                     # state 유효시간(10분)
