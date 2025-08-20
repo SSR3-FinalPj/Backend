@@ -5,7 +5,7 @@ server:
         name: SID
         http-only: true
         secure: false        # 로컬 http로 테스트면 일시적으로 false로
-        same-site: Lax
+        same-site: Lax      # 도커라이징할 때 none으로
 
 jwt:
   issuer: ssj3pj
