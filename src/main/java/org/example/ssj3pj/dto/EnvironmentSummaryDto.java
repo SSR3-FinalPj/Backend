@@ -6,6 +6,8 @@ import lombok.Data;
 @Builder
 public class EnvironmentSummaryDto {
 
+
+    private Long userId;
     // 위치 정보
     private String areaName;
 
