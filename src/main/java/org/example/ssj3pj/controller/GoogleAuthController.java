@@ -1,5 +1,6 @@
 package org.example.ssj3pj.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.entity.User.Users;
@@ -31,6 +32,7 @@ public class GoogleAuthController {
     private String redirectUri;
 
  // google url 전송
+ @Tag(name = "googleLogin", description = "구글 로그인")
  @GetMapping("/login-url")
  public ResponseEntity<String> getGoogleLoginUrl(@AuthenticationPrincipal UserDetails userDetails) {
      Users user = usersRepository.findByUsername(userDetails.getUsername())
@@ -60,28 +62,28 @@ public class GoogleAuthController {
  }
 
 
+//
+//    @GetMapping("/login")
+//    public void googleLoginRedirect(HttpServletResponse response,
+//                                    @AuthenticationPrincipal UserDetails userDetails) throws IOException {
+//        Users user = usersRepository.findByUsername(userDetails.getUsername())
+//                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없음"));
+//
+//        String state = oAuthStateService.issueState(user.getId());
+//
+//        String uri = "https://accounts.google.com/o/oauth2/v2/auth"
+//                + "?client_id=" + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
+//                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
+//                + "&response_type=code"
+//                + "&scope=" + URLEncoder.encode("https://www.googleapis.com/auth/youtube.readonly", StandardCharsets.UTF_8)
+//                + "&access_type=offline"
+//                + "&prompt=consent"
+//                + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
+//
+//        response.sendRedirect(uri);
+//    }
 
-    @GetMapping("/login")
-    public void googleLoginRedirect(HttpServletResponse response,
-                                    @AuthenticationPrincipal UserDetails userDetails) throws IOException {
-        Users user = usersRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("유저를 찾을 수 없음"));
-
-        String state = oAuthStateService.issueState(user.getId());
-
-        String uri = "https://accounts.google.com/o/oauth2/v2/auth"
-                + "?client_id=" + URLEncoder.encode(clientId, StandardCharsets.UTF_8)
-                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
-                + "&response_type=code"
-                + "&scope=" + URLEncoder.encode("https://www.googleapis.com/auth/youtube.readonly", StandardCharsets.UTF_8)
-                + "&access_type=offline"
-                + "&prompt=consent"
-                + "&state=" + URLEncoder.encode(state, StandardCharsets.UTF_8);
-
-        response.sendRedirect(uri);
-    }
-
-
+    @Tag(name = "googleLogin", description = "구글페이지 콜백")
     @GetMapping("/callback")
     public void callback(@RequestParam String code,
                          @RequestParam(required = false) String state,
@@ -108,6 +110,7 @@ public class GoogleAuthController {
         String html = """
         """;
 
+        response.setStatus(200);
         response.setContentType("text/html;charset=UTF-8");
         response.getWriter().write(html);
     }
