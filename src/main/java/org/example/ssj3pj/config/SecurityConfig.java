@@ -17,7 +17,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 @Configuration                     // ★ 반드시 추가
-@EnableWebSecurity                 // ★ 권장(가독/명시성)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -38,10 +37,10 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults()) // ✅ CORS 활성화
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()     // ✅ 프리플라이트 허용
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()     // 프리플라이트 허용
                         .requestMatchers(
                                 "/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
-                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/google"
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/google/**","api/dashboard/youtube/**"
                         ).permitAll()
                         .requestMatchers("/api/google/**").permitAll()   // login-url, callback 등 전부 개방
 
