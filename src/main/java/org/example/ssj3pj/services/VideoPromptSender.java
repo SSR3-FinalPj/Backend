@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -17,6 +18,8 @@ import org.springframework.web.client.RestTemplate;
 public class VideoPromptSender {
 
     private final EnvironmentQueryService environmentQueryService; // ES -> DTO
+
+    @Qualifier("bridgeRestTemplate")
     private final RestTemplate restTemplate;
     private final UsersRepository usersRepository;                 // ★ 추가
 
@@ -27,20 +30,11 @@ public class VideoPromptSender {
      * ES 문서 ID로 조회한 환경 요약 정보를 브릿지(FastAPI)로 전송
      * - 로그인한 사용자의 users.id를 DTO에 포함하여 전송
      */
-    public void sendEnvironmentDataToFastAPI(String esDocId) {
-        // 0) 로그인 사용자 식별
-        Long userId = getCurrentUserId(); // ★ 핵심
-
-        // 1) ES에서 DTO 조회
+    public void sendEnvironmentDataToFastAPI(String esDocId, Long userId) {
         EnvironmentSummaryDto dto = environmentQueryService.getSummaryByDocId(esDocId);
+        dto.setUserId(userId);
 
-        // 2) 로그인 userId 부착 (Lombok @Data 이므로 setter 사용 가능)
-        dto.setUserId(userId); // ★ 핵심
-
-        // 3) 브릿지 엔드포인트
         String url = bridgeBaseUrl + "/api/generate-prompts";
-
-        // 4) 전송
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(url, dto, String.class);
             System.out.println("✅ Bridge 응답: " + response.getBody());

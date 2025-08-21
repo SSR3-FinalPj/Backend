@@ -89,7 +89,9 @@ app:
 prompt:
   server:
     base: ${AI_VIDEO_SERVER_URL:http://127.0.0.1:8001}
-    path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}   # ← 경로를 변수로
+    path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}
+    bridge.connect-timeout-ms: 5000
+    bridge.read-timeout-ms: 10000# ← 경로를 변수로
 
 
 
