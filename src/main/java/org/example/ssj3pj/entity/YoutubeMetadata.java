@@ -1,6 +1,7 @@
 package org.example.ssj3pj.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,8 +34,10 @@ public class YoutubeMetadata {
 
     private Integer commentCount;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime publishedAt;
 
     @Column(name = "indexed_at")
-    private LocalDateTime indexedAt = LocalDateTime.now();
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime indexedAt;
 }

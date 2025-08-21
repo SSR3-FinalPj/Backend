@@ -2,12 +2,12 @@ package org.example.ssj3pj.config;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.security.jwt.AuthTokenFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -17,24 +17,30 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 @Configuration                     // ★ 반드시 추가
-@EnableWebSecurity                 // ★ 권장(가독/명시성)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final AuthTokenFilter authTokenFilter; // ← 타입/이름 맞추기
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public FilterRegistrationBean<AuthTokenFilter> disableAuthFilterRegistration(AuthTokenFilter f) {
+        FilterRegistrationBean<AuthTokenFilter> frb = new FilterRegistrationBean<>(f);
+        frb.setEnabled(false);
+        return frb;
+    }
+
+    @Bean
+    public SecurityFilterChain openAll(HttpSecurity http) throws Exception {
         http
                 .httpBasic(b -> b.disable())
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults()) // ✅ CORS 활성화
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()     // ✅ 프리플라이트 허용
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()     // 프리플라이트 허용
                         .requestMatchers(
                                 "/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
-                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/google"
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/google/**","api/dashboard/youtube/**"
                         ).permitAll()
                         .requestMatchers("/api/google/**").permitAll()   // login-url, callback 등 전부 개방
 
