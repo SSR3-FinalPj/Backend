@@ -21,6 +21,6 @@ public class VideoGeneratedConsumer {
     public void onMessage(String rawJson) {
         // 멱등 필요하면: 별도 AiEvent 테이블로 eventId PK 저장 후 중복 스킵
         promptResultService.upsertFromRawEvent(rawJson);
-        log.info("[KAFKA] processed video.generated event");
+        log.info("[KAFKA] 여기를 봐주세요!! processed video.generated event");
     }
 }

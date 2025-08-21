@@ -2,7 +2,7 @@ package org.example.ssj3pj.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.RedditSummaryDto;
-import org.example.ssj3pj.services.RedditQueryService;
+import org.example.ssj3pj.services.ES.RedditQueryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

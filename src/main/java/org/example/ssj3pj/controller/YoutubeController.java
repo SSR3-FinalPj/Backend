@@ -6,7 +6,7 @@ import org.example.ssj3pj.dto.YoutubeWithDetailsDto;
 import org.example.ssj3pj.dto.YoutubeSummaryDto;
 import org.example.ssj3pj.entity.YoutubeMetadata;
 import org.example.ssj3pj.repository.YoutubeMetadataRepository;
-import org.example.ssj3pj.services.YoutubeQueryService;
+import org.example.ssj3pj.services.ES.YoutubeQueryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
