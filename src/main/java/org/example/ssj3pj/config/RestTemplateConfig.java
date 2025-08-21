@@ -28,4 +28,16 @@ public class RestTemplateConfig {
         f.setReadTimeout(readTimeoutMs);
         return new RestTemplate(f);
     }
+
+    // 영상 전송 스케줄링 Resttemplete
+    @Bean(name = "bridgeRestTemplate")
+    public RestTemplate bridgeRestTemplate(
+            @Value("${prompt.server.bridge.connect-timeout-ms:5000}") int connectTimeoutMs,
+            @Value("${prompt.server.bridge.read-timeout-ms:10000}") int readTimeoutMs
+    ) {
+        var f = new SimpleClientHttpRequestFactory();
+        f.setConnectTimeout(connectTimeoutMs);
+        f.setReadTimeout(readTimeoutMs);
+        return new RestTemplate(f);
+    }
 }

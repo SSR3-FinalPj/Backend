@@ -51,19 +51,19 @@ public class EnvironmentDataService {
         return environmentQueryService.getSummaryByDocId(esDocId);
     }
 
-    /**
-     * 4) EnvironmentMetadata 저장
-     */
-    @Transactional
-    public void save(EnvironmentMetadata metadata) {
-        metadataRepository.save(metadata);
-    }
-
-    /**
-     * 5) EnvironmentMetadata 일괄 저장
-     */
-    @Transactional
-    public void saveAll(List<EnvironmentMetadata> metadataList) {
-        metadataRepository.saveAll(metadataList);
-    }
+//    /**
+//     * 4) EnvironmentMetadata 저장
+//     */
+//    @Transactional
+//    public void save(EnvironmentMetadata metadata) {
+//        metadataRepository.save(metadata);
+//    }
+//
+//    /**
+//     * 5) EnvironmentMetadata 일괄 저장
+//     */
+//    @Transactional
+//    public void saveAll(List<EnvironmentMetadata> metadataList) {
+//        metadataRepository.saveAll(metadataList);
+//    }
 }

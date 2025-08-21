@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+// 프롬프트 전송
 @Service
 @RequiredArgsConstructor
 public class VideoPromptSender {

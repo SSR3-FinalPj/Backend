@@ -1,4 +1,3 @@
-// src/main/java/org/example/ssj3pj/services/GoogleLinkStatusService.java
 package org.example.ssj3pj.services;
 
 import lombok.RequiredArgsConstructor;
@@ -13,6 +12,7 @@ public class GoogleLinkStatusService {
 
     private final GoogleTokenRepository tokenRepo;
 
+    // 구글 연동됐는지 DB에서 Refreshtoken 존재 여부 확인
     public GoogleLinkSimpleDto getStatus(Long userId) {
         boolean linked = tokenRepo.findByUserId(userId)
                 .map(GoogleToken::getRefreshToken)
