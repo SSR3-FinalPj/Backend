@@ -2,7 +2,7 @@ package org.example.ssj3pj.services;
 
 
 import org.example.ssj3pj.repository.UsersRepository;
-import org.example.ssj3pj.entity.Users;
+import org.example.ssj3pj.entity.User.Users;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;

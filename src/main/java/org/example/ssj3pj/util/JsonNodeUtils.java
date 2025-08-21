@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-
+ //JSON 형식 데이터를 원하는 형태로 파싱하기 위한 도구들
 public final class JsonNodeUtils {
 
     private JsonNodeUtils() {}
