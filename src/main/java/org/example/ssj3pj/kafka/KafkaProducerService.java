@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 public class KafkaProducerService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    @Value("${spring.topics.kafka.raw}")
+    @Value("${spring.topics.kafka.raw2}")
     private String topic;
 
     public void send(KafkaMessage msg) {

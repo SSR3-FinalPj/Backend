@@ -65,7 +65,7 @@ spring:
     kafka:
       raw: citydata
       googleAccessToken: googleToken
-      raw: youtubedata
+      raw2: youtubedata
 
 
 
