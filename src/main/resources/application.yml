@@ -15,12 +15,13 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+  elasticsearch:
+    uris: http://219.255.15.170:9200
   data:
     elasticsearch:
-      uris: localhost:9200
       repositories:
         enabled: false
-        
+
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -52,7 +53,7 @@ spring:
 
   topics:
     kafka:
-      raw: citydata
+      raw: youtubedata
 
 jwt:
   secret: mySecretKey1234567890123456789012345678901234567890

@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-
+import org.springframework.http.HttpMethod;
 import java.io.IOException;
 
 @Slf4j
@@ -34,7 +34,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
         // YouTube API 경로는 JWT 검증 건너뛰기
         String path = request.getRequestURI();
-        if (path.startsWith("/api/youtube/")) {
+        if (path.startsWith("/api/dashboard/") ||
+                path.startsWith("/swagger-ui/") ||
+                path.startsWith("/v3/api-docs/") ||
+                path.startsWith("/api/auth/") ||
+                path.startsWith("/api/public/")) {
             filterChain.doFilter(request, response);
             return;
         }
