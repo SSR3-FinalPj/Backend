@@ -143,6 +143,7 @@ public class AuthController {
     /**
      * 로그아웃: 현재 디바이스 refresh 무효화 + 쿠키 제거
      */
+    @Tag(name = "Auth", description = "로그아웃")
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@CookieValue(name = "rt", required = false) String refreshCookie,
                                     HttpServletResponse res) {

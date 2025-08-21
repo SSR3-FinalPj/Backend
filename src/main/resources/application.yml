@@ -5,7 +5,7 @@ server:
         name: SID
         http-only: true
         secure: false        # 로컬 http로 테스트면 일시적으로 false로
-        same-site: Lax
+        same-site: Lax      # 도커라이징할 때 none으로
 
 jwt:
   issuer: ssj3pj
@@ -67,6 +67,11 @@ spring:
       googleAccessToken: googleToken
       raw2: youtubedata
 
+youtube:
+  upload:
+    chunk-size-bytes: 8388608    # 8MB
+    connect-timeout-ms: 10000    # 10s
+    read-timeout-ms: 600000      # 10m (대용량 업로드 대비)
 
 
 
@@ -92,7 +97,9 @@ app:
 prompt:
   server:
     base: ${AI_VIDEO_SERVER_URL:http://127.0.0.1:8001}
-    path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}   # ← 경로를 변수로
+    path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}
+    bridge.connect-timeout-ms: 5000
+    bridge.read-timeout-ms: 10000 # ← 경로를 변수로
 
 
 
@@ -102,3 +109,17 @@ google:
   redirect-uri: http://localhost:8080/api/google/callback
   token-uri: https://oauth2.googleapis.com/token
   skew-seconds: 120
+
+reddit:
+  client-id: ${REDDIT_CLIENT_ID}
+  client-secret: ${REDDIT_CLIENT_SECRET}
+  user-agent: SSRPJ3/1.0 by Classic_Run_4414
+  authorize-url: https://www.reddit.com/api/v1/authorize
+  token-url: https://www.reddit.com/api/v1/access_token
+  api-base: https://oauth.reddit.com
+  redirect-uri: ${REDDIT_REDIRECT_URI:http://localhost:8080/oauth/reddit/callback}
+  scopes: identity read submit                 # 필요 스코프 공백 구분
+
+security:
+  oauth:
+    state-ttl-seconds: 600                     # state 유효시간(10분)

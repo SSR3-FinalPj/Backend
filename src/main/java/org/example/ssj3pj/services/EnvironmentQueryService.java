@@ -9,9 +9,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
+import org.example.ssj3pj.entity.EnvironmentMetadata;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.example.ssj3pj.repository.EnvironmentMetadataRepository;
 
-import static org.example.ssj3pj.util.JsonNodeUtils.*;  // ← util 정적 임포트
+import java.util.List;
+
+import static org.example.ssj3pj.util.JsonNodeUtils.*;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +27,7 @@ public class EnvironmentQueryService {
 
     private final ElasticsearchClient elasticsearchClient;
     private final ObjectMapper objectMapper;
+    private final EnvironmentMetadataRepository metadataRepository;
 
     public EnvironmentSummaryDto getSummaryByDocId(String esDocId) {
         try {
@@ -101,4 +107,20 @@ public class EnvironmentQueryService {
             throw new RuntimeException("❌ ES 원본 조회 실패: " + e.getMessage(), e);
         }
     }
-}
+        /**
+         * 4) EnvironmentMetadata 저장
+         */
+        @Transactional
+        public void save(EnvironmentMetadata metadata) {
+            metadataRepository.save(metadata);
+        }
+
+        /**
+         * 5) EnvironmentMetadata 일괄 저장
+         */
+        @Transactional
+        public void saveAll(List<EnvironmentMetadata> metadataList) {
+            metadataRepository.saveAll(metadataList);
+        }
+
+    }

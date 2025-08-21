@@ -1,6 +1,5 @@
 package org.example.ssj3pj.services;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.config.GoogleOAuthClient;
 import org.example.ssj3pj.dto.GoogleAccessTokenEvent;
@@ -10,6 +9,7 @@ import org.example.ssj3pj.kafka.GoogleTokenKafkaProducer;
 import org.example.ssj3pj.repository.GoogleTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
@@ -24,9 +24,9 @@ public class GoogleTokenService {
     @Value("${google.skew-seconds}")
     private long skewSeconds;
 
-    @Transactional
+    @Transactional //dirtychecking
     public String getValidAccessToken(Long userId) {
-        // 동시 갱신 방지: for update (레포에 메서드 필요)
+        // 동시 갱신 방지: for update
         GoogleToken token = tokenRepo.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new IllegalStateException("Google 연동 정보 없음. userId=" + userId));
 
@@ -48,11 +48,6 @@ public class GoogleTokenService {
         long expiresIn = res.expires_in() != null ? res.expires_in() : 3600L;
         token.setExpiresAt(now.plusSeconds(expiresIn));
         token.setUpdatedAt(Instant.now());
-
-        // 드물게 새 refresh_token이 오면 교체
-        if (res.refresh_token() != null && !res.refresh_token().isBlank()) {
-            token.setRefreshToken(res.refresh_token());
-        }
 
         // 카프카 이벤트: DB에 저장된 youtubeChannelId 사용
         tokenProducer.publish(new GoogleAccessTokenEvent(
