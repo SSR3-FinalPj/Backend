@@ -16,7 +16,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   elasticsearch:
-    uris: http://219.255.15.170:9200
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
   data:
     elasticsearch:
       repositories:

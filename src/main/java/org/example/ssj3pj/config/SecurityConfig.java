@@ -17,7 +17,6 @@ public class SecurityConfig {
 
     private final AuthTokenFilter authTokenFilter;
 
-    // ✅ AuthTokenFilter가 서블릿 필터로 자동 등록되는 걸 확실히 막음 (보안 체인 외부에서 403/401 줄 가능성 차단)
     @Bean
     public FilterRegistrationBean<AuthTokenFilter> disableAuthFilterRegistration(AuthTokenFilter f) {
         FilterRegistrationBean<AuthTokenFilter> frb = new FilterRegistrationBean<>(f);
