@@ -8,7 +8,7 @@ import lombok.Data;
 public class VideoGeneratedEvent {
     private String eventId;   // 멱등용(원하면 AiEvent로 따로 저장)
     private Long userId;      // 실제 Users.id
-    private String promptId;  // = PromptResult.pk
+    private String imagePath;  // = Image.imagePath
     private String prompt;    // 프롬프트 원문 (수정되면 덮어씀)
     private String videoId;   // 고유 영상 ID
     private String video;     // 영상 경로(EFS 내부 경로든 URL이든)
