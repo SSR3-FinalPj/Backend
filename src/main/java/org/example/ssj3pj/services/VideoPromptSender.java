@@ -32,9 +32,9 @@ public class VideoPromptSender {
      * ES 문서 ID로 조회한 환경 요약 정보를 브릿지(FastAPI)로 전송
      * - 로그인한 사용자의 users.id를 DTO에 포함하여 전송
      */
-    public void sendEnvironmentDataToFastAPI(String esDocId, Long userId) {
-        EnvironmentSummaryDto dto = environmentQueryService.getSummaryByDocId(esDocId);
+    public void sendEnvironmentDataToFastAPI(EnvironmentSummaryDto dto, Long userId, String imagePath) {
         dto.setUserId(userId);
+        dto.setImagePath(imagePath);
 
         String url = bridgeBaseUrl + "/api/generate-prompts";
         try {
