@@ -11,6 +11,9 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -57,5 +60,16 @@ public class StorageService {
                 .signatureDuration(Duration.ofMinutes(ttlMinutes))
                 .build();
         return presigner.presignGetObject(pre).url().toString();
+    }
+    public String newImageKey(String userId, String ext) {
+        LocalDate d = LocalDate.now();
+        return String.format(
+                "images/%s/%04d/%02d/%02d/%s.%s",
+                safe(userId), d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
+                UUID.randomUUID(), ext.toLowerCase(Locale.ROOT)
+        );
+    }
+    private String safe(String s) {
+        return (s == null || s.isBlank()) ? "anon" : s.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 }

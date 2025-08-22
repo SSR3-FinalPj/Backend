@@ -3,6 +3,7 @@ package org.example.ssj3pj.services;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
+import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
