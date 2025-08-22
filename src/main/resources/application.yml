@@ -122,4 +122,11 @@ reddit:
 
 security:
   oauth:
-    state-ttl-seconds: 600                     # state 유효시간(10분)
+    state-ttl-seconds: 600                     # google state 변수 유효시간(10분)
+
+aws:
+  region: us-east-2
+  s3:
+    bucket: ssr-ai-video
+  presign:
+    ttl-minutes: 15
