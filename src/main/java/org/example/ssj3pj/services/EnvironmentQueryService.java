@@ -147,47 +147,58 @@ public class EnvironmentQueryService {
                     ))
                     .build();
 
+            log.info("ES Search Request: {}", request.toString());
+
             SearchResponse<JsonData> response = elasticsearchClient.search(request, JsonData.class);
+
+            log.info("ES Search Response - Total Hits: {}", response.hits().total() != null ? response.hits().total().value() : 0);
+            log.info("ES Search Response - Hits Count: {}", response.hits().hits().size());
 
             List<EnvironmentSummaryDto> results = new ArrayList<>();
             for (Hit<JsonData> hit : response.hits().hits()) {
-                JsonNode root = objectMapper.readTree(hit.source().toJson().toString());
-                JsonNode city = coalesce(root.path("citydata"), root.path("CITYDATA"));
-                JsonNode ppl = first(coalesce(city.path("LIVE_PPLTN_STTS"), city.path("live_ppltn_stts")));
-                JsonNode wth = first(coalesce(city.path("WEATHER_STTS"), city.path("weather_stts")));
+                log.info("Processing ES Hit - ID: {}, Source: {}", hit.id(), hit.source().toJson().toString());
+                try {
+                    JsonNode root = objectMapper.readTree(hit.source().toJson().toString());
+                    JsonNode city = coalesce(root.path("citydata"), root.path("CITYDATA"));
+                    JsonNode ppl = first(coalesce(city.path("LIVE_PPLTN_STTS"), city.path("live_ppltn_stts")));
+                    JsonNode wth = first(coalesce(city.path("WEATHER_STTS"), city.path("weather_stts")));
 
-                String areaName        = firstText(city, "AREA_NM", ppl, "AREA_NM");
-                String congestionLevel = text(ppl, "AREA_CONGEST_LVL");
-                String temperature     = text(wth, "TEMP");
-                String humidity        = text(wth, "HUMIDITY");
-                String uvIndex         = firstText(wth, "UV_INDEX_LVL", "UV_INDEX");
+                    String areaName        = firstText(city, "AREA_NM", ppl, "AREA_NM");
+                    String congestionLevel = text(ppl, "AREA_CONGEST_LVL");
+                    String temperature     = text(wth, "TEMP");
+                    String humidity        = text(wth, "HUMIDITY");
+                    String uvIndex         = firstText(wth, "UV_INDEX_LVL", "UV_INDEX");
 
-                String maleRate   = text(ppl, "MALE_PPLTN_RATE");
-                String femaleRate = text(ppl, "FEMALE_PPLTN_RATE");
-                String teenRate   = text(ppl, "PPLTN_RATE_10");
-                String twentyRate = text(ppl, "PPLTN_RATE_20");
-                String thirtyRate = text(ppl, "PPLTN_RATE_30");
-                String fortyRate  = text(ppl, "PPLTN_RATE_40");
-                String fiftyRate  = text(ppl, "PPLTN_RATE_50");
-                String sixtyRate  = text(ppl, "PPLTN_RATE_60");
-                String seventyRate= text(ppl, "PPLTN_RATE_70");
+                    String maleRate   = text(ppl, "MALE_PPLTN_RATE");
+                    String femaleRate = text(ppl, "FEMALE_PPLTN_RATE");
+                    String teenRate   = text(ppl, "PPLTN_RATE_10");
+                    String twentyRate = text(ppl, "PPLTN_RATE_20");
+                    String thirtyRate = text(ppl, "PPLTN_RATE_30");
+                    String fortyRate  = text(ppl, "PPLTN_RATE_40");
+                    String fiftyRate  = text(ppl, "PPLTN_RATE_50");
+                    String sixtyRate  = text(ppl, "PPLTN_RATE_60");
+                    String seventyRate= text(ppl, "PPLTN_RATE_70");
 
-                results.add(EnvironmentSummaryDto.builder()
-                        .areaName(areaName)
-                        .congestionLevel(congestionLevel)
-                        .temperature(temperature)
-                        .humidity(humidity)
-                        .uvIndex(uvIndex)
-                        .maleRate(maleRate)
-                        .femaleRate(femaleRate)
-                        .teenRate(teenRate)
-                        .twentyRate(twentyRate)
-                        .thirtyRate(thirtyRate)
-                        .fortyRate(fortyRate)
-                        .fiftyRate(fiftyRate)
-                        .sixtyRate(sixtyRate)
-                        .seventyRate(seventyRate)
-                        .build());
+                    results.add(EnvironmentSummaryDto.builder()
+                            .areaName(areaName)
+                            .congestionLevel(congestionLevel)
+                            .temperature(temperature)
+                            .humidity(humidity)
+                            .uvIndex(uvIndex)
+                            .maleRate(maleRate)
+                            .femaleRate(femaleRate)
+                            .teenRate(teenRate)
+                            .twentyRate(twentyRate)
+                            .thirtyRate(thirtyRate)
+                            .fortyRate(fortyRate)
+                            .fiftyRate(fiftyRate)
+                            .sixtyRate(sixtyRate)
+                            .seventyRate(seventyRate)
+                            .build());
+                    log.info("Successfully parsed ES hit and added to results. Current results size: {}", results.size());
+                } catch (Exception e) {
+                    log.error("Error parsing ES hit {}: {}", hit.id(), e.getMessage(), e);
+                }
             }
 
             if (results.isEmpty()) {
