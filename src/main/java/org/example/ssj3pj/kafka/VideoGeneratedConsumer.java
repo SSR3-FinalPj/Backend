@@ -10,6 +10,7 @@ import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.ImageRepository;
 import org.example.ssj3pj.repository.VideoRepository;
 import org.example.ssj3pj.repository.UsersRepository;
+import org.example.ssj3pj.services.SseHub;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +23,7 @@ public class VideoGeneratedConsumer {
     private final ImageRepository imageRepository;
     private final VideoRepository videoRepository;
     private final UsersRepository usersRepository;
+    private final SseHub sseHub;
 
     @KafkaListener(
         topics = "video-callback",
@@ -46,7 +48,7 @@ public class VideoGeneratedConsumer {
                     .image(image)
                     .promptText(event.getPrompt())
                     .build();
-
+            sseHub.notifyVideoReady(event.getUserId());
             videoRepository.save(video);
             log.info("[KAFKA] Processed video.generated event for video: {}", event.getVideo());
 
