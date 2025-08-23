@@ -1,6 +1,8 @@
 package org.example.ssj3pj.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
 import org.example.ssj3pj.services.StorageService;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,7 @@ import java.util.UUID;
 public class ImagePresignController {
 
     private final StorageService storage;
+    private final UsersRepository usersRepository;
     private final JwtUtils jwtUtils;
 
     @PostMapping(path = "/presign",
@@ -34,13 +37,18 @@ public class ImagePresignController {
 
         String token = auth.substring(7);
 
-        // 2) 토큰에서 userId(subject) 추출
-        String userId;
+        // 2) 토큰에서 userName(subject) 추출
+        String userName;
         try {
-            userId = jwtUtils.getUserId(token); // subject(userId)
+            userName = jwtUtils.getUserName(token); // subject(userId)
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid token");
         }
+
+        Users user = usersRepository.findByUsername(userName)
+                .orElseThrow(() -> new RuntimeException("User not found for ID: " + userName));
+
+
 
         // 3) MIME 체크 및 확장자 결정
         if (!"image/png".equalsIgnoreCase(req.contentType())
@@ -52,7 +60,7 @@ public class ImagePresignController {
         // 4) 키 생성: images/{userId}/{yyyy}/{MM}/{dd}/{uuid}.{ext}
         LocalDate d = LocalDate.now();
         String key = String.format("images/%s/%04d/%02d/%02d/%s.%s",
-                sanitize(userId), d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
+                sanitize(String.valueOf(user.getId())), d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
                 UUID.randomUUID(), ext);
 
         // 5) Presigned PUT URL 발급 (StorageService는 2-인자 버전)
