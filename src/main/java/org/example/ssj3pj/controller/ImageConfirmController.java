@@ -4,6 +4,10 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.example.ssj3pj.entity.Image;
+import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.repository.ImageRepository;
+import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
 import org.example.ssj3pj.services.StorageService;
 import org.springframework.http.HttpStatus;
@@ -22,6 +26,8 @@ public class ImageConfirmController {
 
     private final StorageService storage; // head(), presignGet() 사용
     private final JwtUtils jwtUtils;
+    private final UsersRepository usersRepository;
+    private final ImageRepository imageRepository;
 
     /** 프론트가 S3 PUT 완료 후 key + locationCode만 전달 */
     @PostMapping(path = "/confirm",
@@ -46,9 +52,16 @@ public class ImageConfirmController {
             // (선택) 프리뷰용 GET URL
             String viewUrl = storage.presignGet(req.key(), head.contentType());
 
-            // TODO: 여기서 DB 저장 / Kafka 발행 등 비즈니스 로직 연결
+            // TODO: 여기서 DB 저장
             // ex) mediaRepo.save(userId, req.locationCode(), req.key(), head.contentLength(), head.eTag(), head.contentType());
+            Users user = usersRepository.findById(Long.valueOf(userId))
+                    .orElseThrow(() -> new RuntimeException("User not found for ID: " + userId));
 
+            Image imageEntity = Image.builder()
+                    .imagePath(viewUrl)
+                    .user(user)
+                    .build();
+            imageRepository.save(imageEntity);
             // 편의상 메타정보까지 응답. 정말 최소만 원하면 ok/key/locationCode만 돌려도 됨.
             return Map.of(
                     "ok", true,

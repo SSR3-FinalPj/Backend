@@ -27,12 +27,12 @@
 //        try {
 //            // Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 //            Long userId = 1L; // Temporarily hardcoded for testing without JWT
-//            // if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User) {
-//            //     userId = 1L; // Placeholder: Replace with actual logic to get the authenticated user's ID
-//            // }
-//            // if (userId == null) {
-//            //     return ResponseEntity.status(401).body("User not authenticated or ID not found.");
-//            // }
+////             if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.User) {
+////                 userId = 1L; // Placeholder: Replace with actual logic to get the authenticated user's ID
+////             }
+////             if (userId == null) {
+////                 return ResponseEntity.status(401).body("User not authenticated or ID not found.");
+////             }
 //
 //            String message = imageUploadService.uploadImageAndProcess(image, locationCode, userId);
 //            return ResponseEntity.ok(message);
