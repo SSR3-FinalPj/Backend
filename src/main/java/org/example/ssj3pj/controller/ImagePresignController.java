@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
+import org.example.ssj3pj.services.ImageUploadService;
 import org.example.ssj3pj.services.StorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -47,9 +48,7 @@ public class ImagePresignController {
 
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found for ID: " + userName));
-
-
-
+      
         // 3) MIME 체크 및 확장자 결정
         if (!"image/png".equalsIgnoreCase(req.contentType())
                 && !"image/jpeg".equalsIgnoreCase(req.contentType())) {
@@ -59,8 +58,8 @@ public class ImagePresignController {
 
         // 4) 키 생성: images/{userId}/{yyyy}/{MM}/{dd}/{uuid}.{ext}
         LocalDate d = LocalDate.now();
-        String key = String.format("images/%s/%04d/%02d/%02d/%s.%s",
-                sanitize(String.valueOf(user.getId())), d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
+        String key = String.format("images/%04d/%02d/%02d/%s.%s",
+                d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
                 UUID.randomUUID(), ext);
 
         // 5) Presigned PUT URL 발급 (StorageService는 2-인자 버전)

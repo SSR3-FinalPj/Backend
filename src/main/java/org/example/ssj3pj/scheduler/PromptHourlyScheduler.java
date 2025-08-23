@@ -40,9 +40,9 @@ public class PromptHourlyScheduler {
             log.info("[SCHED] hourly start -> userId={}, esDocId={}", targetUserId, defaultEsDocId);
 
             Optional<Image> latestImage = imageRepository.findTopByUser_IdOrderByCreatedAtDesc(targetUserId);
-            String imagePath = latestImage.map(Image::getImagePath).orElse(null);
+            String imageKey = latestImage.map(Image::getImageKey).orElse(null);
 
-            if (imagePath == null) {
+            if (imageKey == null) {
                 log.warn("[SCHED] No recent image found for user ID: {}. Skipping scheduled video generation.", targetUserId);
                 return;
             }
@@ -54,11 +54,11 @@ public class PromptHourlyScheduler {
                 return;
             }
 
-            // Set userId and imagePath in the DTO
+            // Set userId and imageKey in the DTO
             summaryDto.setUserId(targetUserId);
-            summaryDto.setImagePath(imagePath);
+            summaryDto.setImageKey(imageKey);
 
-            sender.sendEnvironmentDataToFastAPI(summaryDto, targetUserId, imagePath);
+            sender.sendEnvironmentDataToFastAPI(summaryDto, targetUserId, imageKey);
             log.info("[SCHED] hourly done");
         } catch (Exception e) {
             log.error("[SCHED] hourly failed", e);
