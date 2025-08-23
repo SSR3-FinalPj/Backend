@@ -95,7 +95,7 @@ public class JwtUtils {
     }
 
     /** subject(userId)만 꺼내는 편의 함수 (필요 시 사용) */
-    public String getUserId(String token) {
+    public String getUserName(String token) {
         return parse(token).getBody().getSubject();
     }
 
