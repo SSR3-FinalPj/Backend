@@ -59,7 +59,7 @@ public class ImageConfirmController {
             Users user = usersRepository.findByUsername(userName)
                     .orElseThrow(() -> new RuntimeException("User not found for ID: " + userName));
 
-            imageUploadService.uploadImageAndProcess(viewUrl, req.locationCode, userName);
+            imageUploadService.uploadImageAndProcess(req.key(), req.locationCode, userName);
             // 편의상 메타정보까지 응답. 정말 최소만 원하면 ok/key/locationCode만 돌려도 됨.
             return Map.of(
                     "ok", true,
