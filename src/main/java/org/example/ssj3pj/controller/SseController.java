@@ -43,7 +43,7 @@ public class SseController {
         if (token != null && !token.isBlank()) {
             try {
                 jwtUtils.validateJwtToken(token); // 유효성 검사(만료/서명)
-                String sub = jwtUtils.getUserId(token); // subject = userId
+                String sub = jwtUtils.getUserName(token); // subject = userId
                 Long uid = Long.valueOf(sub);
                 return sseHub.subscribe(uid);
             } catch (Exception e) {

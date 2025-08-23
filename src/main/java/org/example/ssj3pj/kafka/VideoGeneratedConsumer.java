@@ -54,6 +54,7 @@ public class VideoGeneratedConsumer {
 
         } catch (Exception e) {
             log.error("[KAFKA] Failed to process video.generated event: {}", rawJson, e);
+
         }
     }
 }
