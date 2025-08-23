@@ -1,26 +1,30 @@
 package org.example.ssj3pj.services;
+import lombok.extern.slf4j.Slf4j;   // ✅ 이거 추가
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.services.sts.StsClient;
+import software.amazon.awssdk.services.sts.model.GetCallerIdentityResponse;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Locale;
 import java.util.UUID;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class StorageService {
 
     private final S3Client s3;
     private final S3Presigner presigner;
+    @Value("${aws.region:us-east-2}") private String awsRegion;
 
     @Value("${aws.s3.bucket}")
     private String bucket;
@@ -35,6 +39,17 @@ public class StorageService {
 
     /** 업로드용 Presigned PUT URL */
     public String presignPut(String key, String contentType) {
+
+        // ✅ presign 직전 “누가 서명하는지” 로그
+        try (StsClient sts = StsClient.builder()
+                .region(Region.of(awsRegion)) // S3 리전과 맞추기
+                .build()) {
+            GetCallerIdentityResponse me = sts.getCallerIdentity();
+            log.info("[S3 PRESIGN] principal arn={}, account={}, userId={}",
+                    me.arn(), me.account(), me.userId());
+        } catch (Exception e) {
+            log.warn("[S3 PRESIGN] STS GetCallerIdentity 실패: {}", e.toString());
+        }
         var put = PutObjectRequest.builder()
                 .bucket(bucket)
                 .key(key)
@@ -44,6 +59,7 @@ public class StorageService {
                 .putObjectRequest(put)
                 .signatureDuration(Duration.ofMinutes(ttlMinutes))
                 .build();
+
         return presigner.presignPutObject(pre).url().toString();
     }
 
@@ -61,6 +77,8 @@ public class StorageService {
                 .build();
         return presigner.presignGetObject(pre).url().toString();
     }
+
+    /** 이미지 키 생성 유틸 */
     public String newImageKey(String userId, String ext) {
         LocalDate d = LocalDate.now();
         return String.format(
@@ -69,7 +87,16 @@ public class StorageService {
                 UUID.randomUUID(), ext.toLowerCase(Locale.ROOT)
         );
     }
+
     private String safe(String s) {
         return (s == null || s.isBlank()) ? "anon" : s.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
+    /** ← 추가: 업로드 확인용 HEAD */
+    public HeadObjectResponse head(String key) {
+        return s3.headObject(HeadObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build());
     }
 }
