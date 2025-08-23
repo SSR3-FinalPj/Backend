@@ -25,7 +25,7 @@ public class VideoGeneratedConsumer {
 
     @KafkaListener(
         topics = "video-callback",
-        groupId = "video-generated-consumers142"
+        groupId = "${VIDEO_GENERATED_CONSUMER:video-generated-consumers-default}"
         // , concurrency = "3" // 필요시 병렬 처리
     )
     public void onMessage(String rawJson) {
