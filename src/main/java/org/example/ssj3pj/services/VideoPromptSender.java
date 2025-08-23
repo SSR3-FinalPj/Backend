@@ -1,5 +1,7 @@
 package org.example.ssj3pj.services;
 
+import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 import org.example.ssj3pj.entity.User.Users;
@@ -12,6 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import org.example.ssj3pj.dto.VideoGenerationRequestDto;
 
 // 프롬프트 전송
 @Service
@@ -31,13 +35,19 @@ public class VideoPromptSender {
      * ES 문서 ID로 조회한 환경 요약 정보를 브릿지(FastAPI)로 전송
      * - 로그인한 사용자의 users.id를 DTO에 포함하여 전송
      */
-    public void sendEnvironmentDataToFastAPI(EnvironmentSummaryDto dto, Long userId, String imagePath) {
-        dto.setUserId(userId);
-        dto.setImagePath(imagePath);
+    public void sendEnvironmentDataToFastAPI(EnvironmentSummaryDto weatherData, Long userId, String imagePath) {
+        VideoGenerationRequestDto requestDto = VideoGenerationRequestDto.builder()
+                .imagePath(imagePath)
+                .userId(String.valueOf(userId)) // Convert Long to String
+                .weatherData(weatherData)
+                .youtubeData(Map.of()) // Empty map as per schema
+                .redditData(Map.of())  // Empty map as per schema
+                .userData(Map.of())    // Empty map as per schema
+                .build();
 
-        String url = bridgeBaseUrl + "/api/generate-prompts";
+        String url = bridgeBaseUrl + "/api/generate-video"; // Correct endpoint
         try {
-            ResponseEntity<String> response = restTemplate.postForEntity(url, dto, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(url, requestDto, String.class);
             System.out.println("✅ Bridge 응답: " + response.getBody());
         } catch (Exception e) {
             System.out.println("❌ Bridge 전송 실패: " + e.getMessage());
