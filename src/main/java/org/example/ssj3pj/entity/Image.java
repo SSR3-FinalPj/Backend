@@ -17,11 +17,15 @@ import java.time.LocalDateTime;
 public class Image {
 
     @Id
-    @Column(name = "image_path", length = 500)
-    private String imagePath;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "image_id")
+    private Long id;
+
+    @Column(name = "image_key", length = 500, unique = true, nullable = false)
+    private String imageKey;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
     private Users user;
 
     @CreationTimestamp

@@ -11,7 +11,7 @@ import java.util.Map;
 public class VideoGenerationRequestDto {
 
     @JsonProperty("img")
-    private String imagePath;
+    private String imageKey;
 
     @JsonProperty("user_id")
     private String userId; // FastAPI expects string, so convert Long to String

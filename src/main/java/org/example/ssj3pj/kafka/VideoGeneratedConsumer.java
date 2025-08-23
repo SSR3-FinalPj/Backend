@@ -25,30 +25,36 @@ public class VideoGeneratedConsumer {
 
     @KafkaListener(
         topics = "video-callback",
-        groupId = "video-generated-consumers"
+        groupId = "video-generated-consumers142"
         // , concurrency = "3" // 필요시 병렬 처리
     )
     public void onMessage(String rawJson) {
         try {
+            log.info("kafka videocallback start");
             VideoGeneratedEvent event = objectMapper.readValue(rawJson, VideoGeneratedEvent.class);
 
+            log.info("fetch image entity");
             // Fetch Image entity
-            Image image = imageRepository.findById(event.getImagePath())
-                    .orElseThrow(() -> new RuntimeException("Image not found for path: " + event.getImagePath()));
+            Image image = imageRepository.findByImageKey(event.getImageKey())
+                    .orElseThrow(() -> new RuntimeException("Image not found for path: " + event.getImageKey()));
 
+            log.info("fetch user entity");
             // Fetch User entity
             Users user = usersRepository.findById(event.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found for ID: " + event.getUserId()));
 
+            log.info("video build");
             Video video = Video.builder()
-                    .videoPath(event.getVideo())
+                    .videoKey(event.getVideoKey())
                     .user(user)
                     .image(image)
+                    .status(event.getStatus())
                     .promptText(event.getPrompt())
                     .build();
 
+            log.info("video save");
             videoRepository.save(video);
-            log.info("[KAFKA] Processed video.generated event for video: {}", event.getVideo());
+            log.info("[KAFKA] Processed video.generated event for video: {}", event.getVideoKey());
 
         } catch (Exception e) {
             log.error("[KAFKA] Failed to process video.generated event: {}", rawJson, e);

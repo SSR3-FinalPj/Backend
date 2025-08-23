@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.security.jwt.JwtUtils;
+import org.example.ssj3pj.services.ImageUploadService;
 import org.example.ssj3pj.services.StorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,6 +22,7 @@ import java.util.Map;
 public class ImageConfirmController {
 
     private final StorageService storage; // head(), presignGet() 사용
+    private final ImageUploadService imageUploadService;
     private final JwtUtils jwtUtils;
 
     /** 프론트가 S3 PUT 완료 후 key + locationCode만 전달 */
@@ -48,7 +50,7 @@ public class ImageConfirmController {
 
             // TODO: 여기서 DB 저장 / Kafka 발행 등 비즈니스 로직 연결
             // ex) mediaRepo.save(userId, req.locationCode(), req.key(), head.contentLength(), head.eTag(), head.contentType());
-
+            imageUploadService.uploadImageAndProcess(req.key(), req.locationCode(), userId);
             // 편의상 메타정보까지 응답. 정말 최소만 원하면 ok/key/locationCode만 돌려도 됨.
             return Map.of(
                     "ok", true,
@@ -74,7 +76,7 @@ public class ImageConfirmController {
         if (auth == null || !auth.startsWith("Bearer "))
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "missing bearer token");
         try {
-            return jwtUtils.getUserId(auth.substring(7)); // subject(userId)
+            return jwtUtils.getUserName(auth.substring(7)); // subject(userId)
         } catch (JwtException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid token");
         }
