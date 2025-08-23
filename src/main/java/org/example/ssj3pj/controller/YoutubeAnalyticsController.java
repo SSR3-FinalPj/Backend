@@ -3,7 +3,7 @@ package org.example.ssj3pj.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.DailyDemographicsDto;
-import org.example.ssj3pj.dto.PeriodRequest;
+import org.example.ssj3pj.dto.request.PeriodRequest;
 import org.example.ssj3pj.dto.TrafficSourceDto;
 import org.example.ssj3pj.services.YoutubeAnalyticsService;
 import org.springframework.http.ResponseEntity;

@@ -93,7 +93,7 @@ public class    YouTubeChannelController {
             }
             
             // 비디오 목록 조회 (ES 기반)
-            VideoListDto videoList = youTubeChannelService.getChannelVideos(channelId);
+            VideoListDto videoList = youTubeChannelService.getChannelVideos(channelId, pageToken, maxResults);
             
             log.info("채널 비디오 목록 조회 성공: channelId={}, 비디오 수={}", 
                     channelId, videoList.getVideos().size());
