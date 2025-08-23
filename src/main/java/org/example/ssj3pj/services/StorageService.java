@@ -34,7 +34,7 @@ public class StorageService {
 
     /** 비디오 키 규칙 */
     public String videoKey(String videoId) {
-        return "videos/" + videoId + "/master.mp4";
+        return "videos/" + "/master.mp4";
     }
 
     /** 업로드용 Presigned PUT URL */
@@ -79,11 +79,11 @@ public class StorageService {
     }
 
     /** 이미지 키 생성 유틸 */
-    public String newImageKey(String userId, String ext) {
+    public String newImageKey(String ext) {
         LocalDate d = LocalDate.now();
         return String.format(
-                "images/%s/%04d/%02d/%02d/%s.%s",
-                safe(userId), d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
+                "images/%04d/%02d/%02d/%s.%s",
+                d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
                 UUID.randomUUID(), ext.toLowerCase(Locale.ROOT)
         );
     }

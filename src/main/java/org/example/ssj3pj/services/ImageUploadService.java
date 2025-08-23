@@ -24,21 +24,23 @@ public class ImageUploadService {
     private final ImageRepository imageRepository;
     private final UsersRepository usersRepository;
 
-    public String uploadImageAndProcess(String imagePath, String locationCode, String userName) {
-        try {
+    public String uploadImageAndProcess(String imageKey, String locationCode, String userName){
+        try{
+
             log.info("Location code: {}", locationCode);
             log.info("User Name: {}", userName);
+
 
             // 2. Save Image entity to DB
             Users user = usersRepository.findByUsername(userName)
                     .orElseThrow(() -> new RuntimeException("User not found for ID: " + userName));
 
             Image imageEntity = Image.builder()
-                    .imagePath(imagePath)
+                    .imageKey(imageKey)
                     .user(user)
                     .build();
             imageRepository.save(imageEntity);
-            log.info("Image entity saved: {}", imagePath);
+            log.info("Image entity saved: {}", imageKey);
 
             // 3. Get environment summary from ES
             EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(locationCode);
@@ -47,16 +49,17 @@ public class ImageUploadService {
                 throw new RuntimeException("No environment summary found for location code: " + locationCode);
             }
 
-            // Set userId and imagePath in the DTO
+            // Set userId and imageKey in the DTO
             summary.setUserId(user.getId());
-            summary.setImagePath(imagePath);
+            summary.setImageKey(imageKey);
 
             // 4. Send data to FastAPI (AI service)
-            videoPromptSender.sendEnvironmentDataToFastAPI(summary, user.getId(), imagePath);
-            log.info("Sent data to FastAPI for image: {} and location: {}", imagePath, locationCode);
+            videoPromptSender.sendEnvironmentDataToFastAPI(summary, user.getId(), imageKey);
+            log.info("Sent data to FastAPI for image: {} and location: {}", imageKey, locationCode);
 
             return "Image uploaded and processing initiated for location code: " + locationCode;
-        } catch (Exception e) {
+
+        }catch (Exception e) {
             log.error("Error during image processing", e);
             throw new RuntimeException("Error during image processing", e);
         }
