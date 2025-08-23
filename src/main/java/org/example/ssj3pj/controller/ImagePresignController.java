@@ -38,16 +38,17 @@ public class ImagePresignController {
 
         String token = auth.substring(7);
 
-        // 2) 토큰에서 userId(subject) 추출
+        // 2) 토큰에서 userName(subject) 추출
         String userName;
         try {
-            userName = jwtUtils.getUserName(token); // subject(userName)
+            userName = jwtUtils.getUserName(token); // subject(userId)
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid token");
         }
 
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found for ID: " + userName));
+      
         // 3) MIME 체크 및 확장자 결정
         if (!"image/png".equalsIgnoreCase(req.contentType())
                 && !"image/jpeg".equalsIgnoreCase(req.contentType())) {
