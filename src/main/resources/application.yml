@@ -122,4 +122,15 @@ reddit:
 
 security:
   oauth:
-    state-ttl-seconds: 600                     # state 유효시간(10분)
+    state-ttl-seconds: 600                     # google state 변수 유효시간(10분)
+
+aws:
+  region: us-east-2
+  # 아래 3개는 선택(환경변수가 우선이므로 비워도 됨)
+  access-key-id: ${AWS-ACCESS-KEY}
+  secret-access-key: ${AWS-SECRET}
+
+  s3:
+    bucket: ssr-ai-video
+  presign:
+    ttl-minutes: 15

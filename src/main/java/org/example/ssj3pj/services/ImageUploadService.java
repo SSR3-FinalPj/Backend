@@ -7,6 +7,7 @@ import org.example.ssj3pj.entity.Image;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.ImageRepository;
 import org.example.ssj3pj.repository.UsersRepository;
+import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 

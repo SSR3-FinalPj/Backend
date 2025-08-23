@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
+import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;

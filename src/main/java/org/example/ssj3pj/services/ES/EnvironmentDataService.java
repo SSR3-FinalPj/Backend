@@ -1,4 +1,4 @@
-package org.example.ssj3pj.services;
+package org.example.ssj3pj.services.ES;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
@@ -6,9 +6,6 @@ import org.example.ssj3pj.entity.EnvironmentMetadata;
 import org.example.ssj3pj.repository.EnvironmentMetadataRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor

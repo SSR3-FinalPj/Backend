@@ -1,9 +1,9 @@
 // src/main/java/org/example/ssj3pj/services/YoutubeUploadService.java
-package org.example.ssj3pj.services;
+package org.example.ssj3pj.services.youtube;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.example.ssj3pj.services.google.GoogleTokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;

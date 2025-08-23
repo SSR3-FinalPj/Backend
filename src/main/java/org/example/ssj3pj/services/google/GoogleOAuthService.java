@@ -1,4 +1,4 @@
-package org.example.ssj3pj.services;
+package org.example.ssj3pj.services.google;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.config.GoogleOAuthClient;
