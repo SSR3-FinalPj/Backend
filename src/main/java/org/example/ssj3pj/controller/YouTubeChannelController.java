@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.youtube.ChannelInfoDto;
 import org.example.ssj3pj.dto.youtube.VideoListDto;
+import org.example.ssj3pj.dto.youtube.VideoDetailDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.YouTubeChannelService;
@@ -111,6 +112,45 @@ public class    YouTubeChannelController {
             }
         } catch (Exception e) {
             log.error("채널 비디오 목록 조회 중 예상치 못한 오류: channelId={}", channelId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 3. 단일 영상 상세 조회
+     * GET /api/youtube/video/{videoId}
+     * 
+     * 특정 영상의 상세 정보를 조회
+     */
+    @GetMapping("/video/{videoId}")
+    public ResponseEntity<VideoDetailDto> getVideoDetail(@PathVariable String videoId) {
+        try {
+            log.info("단일 영상 상세 조회 요청: videoId={}", videoId);
+            
+            // 입력 값 검증
+            if (videoId == null || videoId.trim().isEmpty()) {
+                log.warn("잘못된 비디오 ID: {}", videoId);
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // 영상 상세 정보 조회 (ES 기반)
+            VideoDetailDto videoDetail = youTubeChannelService.getVideoDetail(videoId.trim());
+            
+            log.info("단일 영상 상세 조회 성공: videoId={}, title={}", videoId, videoDetail.getTitle());
+            
+            return ResponseEntity.ok(videoDetail);
+            
+        } catch (RuntimeException e) {
+            log.error("단일 영상 상세 조회 실패: videoId={}", videoId, e);
+            
+            // 구체적인 에러에 따라 HTTP 상태 코드 결정
+            if (e.getMessage().contains("찾을 수 없습니다")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+        } catch (Exception e) {
+            log.error("단일 영상 상세 조회 중 예상치 못한 오류: videoId={}", videoId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
