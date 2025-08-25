@@ -46,16 +46,16 @@ public class KafkaConsumerService {
             @Header("kafka_offset") long offset
     ) {
         try {
-            log.info("\n🔔 Kafka Consumer 메시지 수신:");
-            log.info("   Topic: {}, Partition: {}, Offset: {}", topic, partition, offset);
-            log.info("   메시지 길이: {} characters", jsonMessage.length());
-            log.info("   메시지 내용: '{}'", jsonMessage);
-            log.info("   완료 신호와 비교: '{}' vs '{}'", jsonMessage.trim(), COMPLETION_SIGNAL);
-            log.info("   완료 신호 매칭: {}", COMPLETION_SIGNAL.equals(jsonMessage.trim()));
+//            log.info("\n🔔 Kafka Consumer 메시지 수신:");
+//            log.info("   Topic: {}, Partition: {}, Offset: {}", topic, partition, offset);
+//            log.info("   메시지 길이: {} characters", jsonMessage.length());
+//            log.info("   메시지 내용: '{}'", jsonMessage);
+//            log.info("   완료 신호와 비교: '{}' vs '{}'", jsonMessage.trim(), COMPLETION_SIGNAL);
+//            log.info("   완료 신호 매칭: {}", COMPLETION_SIGNAL.equals(jsonMessage.trim()));
 
             // 완료 신호 체크 - JSON 형태로 변경
             if (isCompletionMessage(jsonMessage)) {
-                log.info("✅ 완료 신호 감지! 배치 처리 시작...");
+//                log.info("✅ 완료 신호 감지! 배치 처리 시작...");
                 handleBatchCompletion(acknowledgment);
                 return;
             }
