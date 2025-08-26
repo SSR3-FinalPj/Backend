@@ -1,6 +1,8 @@
-// src/main/java/org/example/ssj3pj/sse/SseController.java
+// src/main/java/org/example/ssj3pj/controller/SseController.java
 package org.example.ssj3pj.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;   // ★ 추가
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.config.SseConfig.SseSettings;
@@ -24,52 +26,26 @@ public class SseController {
     private final JwtUtils jwtUtils;
     private final SseHub sseHub;
 
-    @CrossOrigin(origins = {"http://localhost:5173","http://localhost:3000"}) // 필요시 조정/제거
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter stream(@RequestParam(required = false) String userId,
-                             @RequestParam(name = "#{@sseConfig.sseSettings.tokenQueryParam()}", required = false) String sse_token // 주입 안 되므로 아래에서 수동 처리
-    ) {
-        // 1) 운영: sse_token(쿼리)에 담긴 JWT로 인증
-        String tokenParamName = conf.tokenQueryParam(); // ex: sse_token
-        // 스프링 EL로 파라미터 바인딩하기 까다로워서 수동 추출:
-        if (sse_token == null) {
-            // 스프링이 위의 EL을 못 채우는 경우가 있으므로, 아래처럼 한 번 더 안전망 걸기
-            // 단, 여기서는 단순화를 위해 @RequestParam으로 못 받은 경우를 BAD_REQUEST로 처리
+    public SseEmitter stream(HttpServletRequest request, HttpServletResponse response) { // ★ response 추가
+        // ▶ 프록시 버퍼링/캐시 방지(권장)
+        response.setHeader("X-Accel-Buffering", "no");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Connection", "keep-alive");
+
+        final String paramName = conf.tokenQueryParam(); // 예: "sse_token"
+        final String token = request.getParameter(paramName);
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(BAD_REQUEST, "Missing query param: " + paramName);
         }
 
-        // RequestParam 맵 전체에서 직접 꺼내고 싶으면 HttpServletRequest로 받아서 req.getParameter(tokenParamName) 사용해도 됨.
-        String token = sse_token; // 위에서 파라미터로 받았다고 가정
-
-        if (token != null && !token.isBlank()) {
-            try {
-                jwtUtils.validateJwtToken(token); // 유효성 검사(만료/서명)
-                String sub = jwtUtils.getUserName(token); // subject = userId
-                Long uid = Long.valueOf(sub);
-                return sseHub.subscribe(uid);
-            } catch (Exception e) {
-                log.warn("SSE JWT invalid: {}", e.getMessage());
-                throw new ResponseStatusException(UNAUTHORIZED, "Invalid token");
-            }
+        try {
+            jwtUtils.validateJwtToken(token);
+            Long uid = jwtUtils.getUidAsLong(token);      // uid 클레임 필수
+            return sseHub.subscribe(uid);
+        } catch (Exception e) {
+            log.warn("SSE token invalid: {}", e.getMessage());
+            throw new ResponseStatusException(UNAUTHORIZED, "Invalid or expired token");
         }
-
-        // 2) (옵션) 로컬 개발 우회: ?userId=1 (운영에서 conf.devAllowUserIdParam=false)
-        if (conf.devAllowUserIdParam()) {
-            if (userId == null || userId.isBlank()) {
-                throw new ResponseStatusException(BAD_REQUEST, "userId is required in dev mode");
-            }
-            try {
-                return sseHub.subscribe(Long.valueOf(userId));
-            } catch (NumberFormatException e) {
-                throw new ResponseStatusException(BAD_REQUEST, "userId must be a number");
-            }
-        }
-
-        throw new ResponseStatusException(UNAUTHORIZED, "Missing token");
-    }
-
-    /** 로컬 테스트용 (운영에서 제거 권장) */
-    @PostMapping("/_dev/trigger")
-    public void trigger(@RequestParam Long userId) {
-        sseHub.notifyVideoReady(userId);
     }
 }
