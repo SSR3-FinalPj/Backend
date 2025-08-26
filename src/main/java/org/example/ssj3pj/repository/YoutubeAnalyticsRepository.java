@@ -34,6 +34,78 @@ public class YoutubeAnalyticsRepository {
     @Value("${app.es.idx.demo:youtubedata}")
     private String demoIndex;
 
+    /** 단일 비디오 트래픽 소스 조회 - 해당 비디오의 최신 문서만 사용 */
+    public List<TrafficSourceDto> trafficSourceByVideoId(String videoId) {
+        try {
+            // 특정 비디오의 최신 문서 가져오기
+            SearchResponse<JsonData> docsRes = es.search(s -> s
+                            .index(trafficIndex)
+                            .size(1) // 최신 문서 1개만
+                            .query(q -> q.term(t -> t.field("video_id.keyword").value(videoId)))
+                            .sort(so -> so.field(f -> f.field("@timestamp").order(SortOrder.Desc))),
+                    JsonData.class
+            );
+
+            List<TrafficSourceDto> result = new ArrayList<>();
+            
+            if (docsRes.hits().hits().isEmpty()) {
+                return result; // 해당 비디오 데이터 없음
+            }
+            
+            var latestDoc = docsRes.hits().hits().get(0);
+            JsonData sourceData = latestDoc.source();
+            if (sourceData == null) return result;
+            
+            try {
+                // JsonData를 Map으로 변환
+                String jsonString = sourceData.toJson().toString();
+                Map<String, Object> source = objectMapper.readValue(jsonString, Map.class);
+                
+                // channel_analytics.traffic_source_analytics 배열 파싱
+                Map<String, Object> channelAnalytics = (Map<String, Object>) source.get("channel_analytics");
+                if (channelAnalytics == null) return result;
+                
+                List<Map<String, Object>> trafficAnalytics = (List<Map<String, Object>>) channelAnalytics.get("traffic_source_analytics");
+                if (trafficAnalytics == null) return result;
+                
+                for (Map<String, Object> traffic : trafficAnalytics) {
+                    String sourceType = (String) traffic.get("insightTrafficSourceType");
+                    Object viewsObj = traffic.get("views");
+                    
+                    if (sourceType != null && viewsObj != null) {
+                        long views = 0;
+                        if (viewsObj instanceof Number) {
+                            views = ((Number) viewsObj).longValue();
+                        } else if (viewsObj instanceof String) {
+                            try {
+                                views = Long.parseLong((String) viewsObj);
+                            } catch (NumberFormatException e) {
+                                // 무시
+                            }
+                        }
+                        
+                        if (views > 0) { // 0인 것은 제외
+                            result.add(TrafficSourceDto.builder()
+                                    .insightTrafficSourceType(sourceType)
+                                    .views(views)
+                                    .build());
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // JSON 파싱 실패 시 빈 리스트 반환
+                return result;
+            }
+            
+            // 조회수 내림차순 정렬
+            result.sort((a, b) -> Long.compare(b.getViews(), a.getViews()));
+            return result;
+
+        } catch (IOException e) {
+            throw new RuntimeException("ES single video traffic source failed", e);
+        }
+    }
+
     /** 기간 합산 트래픽 소스 요약 - 비디오별 최신 문서만 사용 */
     public List<TrafficSourceDto> trafficSourceSummary(LocalDate start, LocalDate end) {
         try {

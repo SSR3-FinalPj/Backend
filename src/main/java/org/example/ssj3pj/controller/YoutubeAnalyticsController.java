@@ -27,22 +27,18 @@ public class YoutubeAnalyticsController {
 
     private final YoutubeAnalyticsService service;
 
-    @PostMapping("/traffic-source-summary")
-    public ResponseEntity<?> trafficSourceSummary(@RequestBody PeriodRequest req) {
+    @PostMapping("/traffic-source-summary/{videoId}")
+    public ResponseEntity<?> trafficSourceSummary(@PathVariable String videoId) {
         try {
-            LocalDate start = LocalDate.parse(req.getStartDate());
-            LocalDate end   = LocalDate.parse(req.getEndDate());
-            log.info("traffic-source-summary: {} ~ {}", start, end);
+            log.info("traffic-source-summary for videoId: {}", videoId);
 
-            List<TrafficSourceCategoryDto> data = service.trafficSourceByCategory(start, end);
+            List<TrafficSourceCategoryDto> data = service.trafficSourceByVideoId(videoId);
             return ResponseEntity.ok(Map.of("status", 200, "message", "성공", "data", data));
 
-        } catch (DateTimeParseException e) {
-            return ResponseEntity.badRequest().body(Map.of("status", 400, "message", "날짜 형식 오류 (YYYY-MM-DD)"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
         } catch (Exception e) {
-            log.error("traffic-source-summary 실패", e);
+            log.error("traffic-source-summary 실패 (videoId: {})", videoId, e);
             return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", "Internal Server Error"));
         }
     }

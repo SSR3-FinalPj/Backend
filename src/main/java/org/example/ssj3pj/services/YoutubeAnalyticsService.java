@@ -21,6 +21,34 @@ public class YoutubeAnalyticsService {
 
     private final YoutubeAnalyticsRepository repo;
 
+    /** 단일 비디오의 트래픽 소스 조회 (카테고리별 그룹핑) */
+    public List<TrafficSourceCategoryDto> trafficSourceByVideoId(String videoId) {
+        if (videoId == null || videoId.trim().isEmpty()) {
+            throw new IllegalArgumentException("videoId must not be empty");
+        }
+        
+        // 1. 개별 트래픽 소스 데이터 가져오기
+        List<TrafficSourceDto> rawData = repo.trafficSourceByVideoId(videoId.trim());
+        
+        // 2. 카테고리별 매핑 및 합산
+        Map<String, Long> categoryViews = new HashMap<>();
+        
+        for (TrafficSourceDto item : rawData) {
+            String category = mapToCategory(item.getInsightTrafficSourceType());
+            categoryViews.merge(category, item.getViews(), Long::sum);
+        }
+        
+        // 3. DTO 변환 및 정렬 (조회수 내림차순)
+        return categoryViews.entrySet().stream()
+                .map(entry -> TrafficSourceCategoryDto.builder()
+                        .categoryCode(entry.getKey())
+                        .categoryName(getCategoryName(entry.getKey()))
+                        .totalViews(entry.getValue())
+                        .build())
+                .sorted((a, b) -> Long.compare(b.getTotalViews(), a.getTotalViews()))
+                .collect(Collectors.toList());
+    }
+
     public List<TrafficSourceDto> trafficSourceSummary(LocalDate start, LocalDate end) {
         if (end.isBefore(start)) throw new IllegalArgumentException("endDate must be >= startDate");
         return repo.trafficSourceSummary(start, end);
