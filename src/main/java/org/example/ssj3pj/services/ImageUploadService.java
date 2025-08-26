@@ -33,6 +33,7 @@ public class ImageUploadService {
             Image imageEntity = Image.builder()
                     .imageKey(imageKey)
                     .user(user)
+                    .locationCode(locationCode)
                     .build();
             imageRepository.save(imageEntity);
 
