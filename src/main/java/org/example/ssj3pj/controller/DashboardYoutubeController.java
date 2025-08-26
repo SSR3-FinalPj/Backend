@@ -3,7 +3,7 @@ package org.example.ssj3pj.controller;
 import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
 import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;
 import org.example.ssj3pj.dto.dashboard.DashboardTotalStats;
-import org.example.ssj3pj.services.DashboardYoutubeService;
+import org.example.ssj3pj.services.youtube.DashboardYoutubeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/dashboard/youtube")

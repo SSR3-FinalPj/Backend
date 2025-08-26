@@ -8,6 +8,7 @@ public class EnvironmentSummaryDto {
 
 
     private Long userId;
+    private String imageKey;
     // 위치 정보
     private String areaName;
 

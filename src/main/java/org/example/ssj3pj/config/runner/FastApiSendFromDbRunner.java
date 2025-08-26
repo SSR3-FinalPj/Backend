@@ -6,7 +6,7 @@
 //import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 //import org.example.ssj3pj.entity.EnvironmentMetadata;
 //import org.example.ssj3pj.repository.EnvironmentMetadataRepository;
-//import org.example.ssj3pj.services.EnvironmentQueryService;
+//import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 //import org.example.ssj3pj.services.VideoPromptSender;
 //import org.springframework.boot.CommandLineRunner;
 //import org.springframework.stereotype.Component;

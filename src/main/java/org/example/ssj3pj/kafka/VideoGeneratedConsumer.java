@@ -1,8 +1,16 @@
 package org.example.ssj3pj.kafka;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.services.PromptResultService;
+import org.example.ssj3pj.dto.response.VideoGeneratedEvent;
+import org.example.ssj3pj.entity.Image;
+import org.example.ssj3pj.entity.Video;
+import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.repository.ImageRepository;
+import org.example.ssj3pj.repository.VideoRepository;
+import org.example.ssj3pj.repository.UsersRepository;
+import org.example.ssj3pj.services.SseHub;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -11,16 +19,49 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class VideoGeneratedConsumer {
 
-    private final PromptResultService promptResultService;
+    private final ObjectMapper objectMapper;
+    private final ImageRepository imageRepository;
+    private final VideoRepository videoRepository;
+    private final UsersRepository usersRepository;
+    private final SseHub sseHub;
 
     @KafkaListener(
         topics = "video-callback",
-        groupId = "video-generated-consumers"
+        groupId = "${VIDEO_GENERATED_CONSUMER:video-generated-consumers-default}"
         // , concurrency = "3" // 필요시 병렬 처리
     )
     public void onMessage(String rawJson) {
-        // 멱등 필요하면: 별도 AiEvent 테이블로 eventId PK 저장 후 중복 스킵
-        promptResultService.upsertFromRawEvent(rawJson);
-        log.info("[KAFKA] processed video.generated event");
+        try {
+            log.info("kafka videocallback start");
+            VideoGeneratedEvent event = objectMapper.readValue(rawJson, VideoGeneratedEvent.class);
+
+            log.info("fetch image entity");
+            // Fetch Image entity
+            Image image = imageRepository.findByImageKey(event.getImageKey())
+                    .orElseThrow(() -> new RuntimeException("Image not found for path: " + event.getImageKey()));
+
+            log.info("fetch user entity");
+            // Fetch User entity
+            Users user = usersRepository.findById(event.getUserId())
+                    .orElseThrow(() -> new RuntimeException("User not found for ID: " + event.getUserId()));
+
+            log.info("video build");
+            Video video = Video.builder()
+                    .videoKey(event.getVideoKey())
+                    .user(user)
+                    .image(image)
+                    .status(event.getStatus())
+                    .promptText(event.getPrompt())
+                    .build();
+            sseHub.notifyVideoReady(event.getUserId());
+
+            log.info("video save");
+            videoRepository.save(video);
+            log.info("[KAFKA] Processed video.generated event for video: {}", event.getVideoKey());
+
+        } catch (Exception e) {
+            log.error("[KAFKA] Failed to process video.generated event: {}", rawJson, e);
+
+        }
     }
 }

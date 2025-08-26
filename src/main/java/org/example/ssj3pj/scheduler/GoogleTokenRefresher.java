@@ -2,7 +2,7 @@ package org.example.ssj3pj.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.repository.GoogleTokenRepository;
-import org.example.ssj3pj.services.GoogleTokenService;
+import org.example.ssj3pj.services.google.GoogleTokenService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 

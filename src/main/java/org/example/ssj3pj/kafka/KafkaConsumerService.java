@@ -3,13 +3,12 @@ package org.example.ssj3pj.kafka;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.entity.EnvironmentMetadata;
-import org.example.ssj3pj.services.EnvironmentDataService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import org.example.ssj3pj.services.EnvironmentQueryService;
+import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -18,7 +17,6 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -48,16 +46,16 @@ public class KafkaConsumerService {
             @Header("kafka_offset") long offset
     ) {
         try {
-            log.info("\n🔔 Kafka Consumer 메시지 수신:");
-            log.info("   Topic: {}, Partition: {}, Offset: {}", topic, partition, offset);
-            log.info("   메시지 길이: {} characters", jsonMessage.length());
-            log.info("   메시지 내용: '{}'", jsonMessage);
-            log.info("   완료 신호와 비교: '{}' vs '{}'", jsonMessage.trim(), COMPLETION_SIGNAL);
-            log.info("   완료 신호 매칭: {}", COMPLETION_SIGNAL.equals(jsonMessage.trim()));
+//            log.info("\n🔔 Kafka Consumer 메시지 수신:");
+//            log.info("   Topic: {}, Partition: {}, Offset: {}", topic, partition, offset);
+//            log.info("   메시지 길이: {} characters", jsonMessage.length());
+//            log.info("   메시지 내용: '{}'", jsonMessage);
+//            log.info("   완료 신호와 비교: '{}' vs '{}'", jsonMessage.trim(), COMPLETION_SIGNAL);
+//            log.info("   완료 신호 매칭: {}", COMPLETION_SIGNAL.equals(jsonMessage.trim()));
 
             // 완료 신호 체크 - JSON 형태로 변경
             if (isCompletionMessage(jsonMessage)) {
-                log.info("✅ 완료 신호 감지! 배치 처리 시작...");
+//                log.info("✅ 완료 신호 감지! 배치 처리 시작...");
                 handleBatchCompletion(acknowledgment);
                 return;
             }

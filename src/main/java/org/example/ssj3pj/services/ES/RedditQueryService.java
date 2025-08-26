@@ -1,4 +1,4 @@
-package org.example.ssj3pj.services;
+package org.example.ssj3pj.services.ES;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.GetRequest;

@@ -39,7 +39,9 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         return PATH_MATCHER.match("/api/auth/**", uri)
                 || PATH_MATCHER.match("/v3/api-docs/**", uri)
                 || PATH_MATCHER.match("/swagger-ui/**", uri)
-                || PATH_MATCHER.match("/swagger-ui.html", uri);
+                || PATH_MATCHER.match("/swagger-ui.html", uri)
+                || PATH_MATCHER.match("/api/notify/stream/**", uri);
+
     }
 
     @Override

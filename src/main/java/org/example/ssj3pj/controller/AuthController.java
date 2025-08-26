@@ -49,15 +49,18 @@ public class AuthController {
 
         // 디바이스 식별 (간단 버전: UA 해시)
         String deviceId = Integer.toHexString((ua == null ? "unknown" : ua).hashCode());
+        Long   uid      = user.getId();
+        String username = user.getUsername();
+        String role     = "USER";
 
         // jti 생성
         String rJti = UUID.randomUUID().toString();
         String aJti = UUID.randomUUID().toString();
 
         // Refresh(쿠키용) + Access(JSON용) 생성
-        // role 없으면 "USER" 등 기본값 사용
-        String refreshToken = jwtUtils.createRefresh(user.getUsername(), deviceId, rJti);
-        String accessToken  = jwtUtils.createAccess(user.getUsername(), "USER", aJti);
+
+        String refreshToken = jwtUtils.createRefresh(username, deviceId, rJti, uid);
+        String accessToken  = jwtUtils.createAccess(username, role, aJti, uid);
 
         // Redis에 현재 유효한 refresh jti 저장(+TTL)
         Instant refreshExp = jwtUtils.parse(refreshToken).getBody().getExpiration().toInstant();
@@ -106,13 +109,16 @@ public class AuthController {
                 expireCookie(res);
                 return ResponseEntity.status(401).body(Map.of("error", "Refresh token reuse detected"));
             }
-
+            Users user = usersRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
+            Long uid = user.getId();
+            String role = "USER";
 
             // 회전(rotate): 새 refresh/새 access 발급
             String newRJti     = UUID.randomUUID().toString();
             String newAJti     = UUID.randomUUID().toString();
-            String newRefresh  = jwtUtils.createRefresh(username, deviceId, newRJti);
-            String newAccess   = jwtUtils.createAccess(username, "USER", newAJti);
+            String newRefresh = jwtUtils.createRefresh(username, deviceId, newRJti, uid);
+            String newAccess  = jwtUtils.createAccess(username, role, newAJti, uid);
 
             // AuthController.refresh() 맨 위
             System.out.println("[auth] /refresh cookie.present=" + (refreshCookie != null));

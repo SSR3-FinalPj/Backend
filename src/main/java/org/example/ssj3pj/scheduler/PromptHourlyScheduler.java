@@ -1,12 +1,18 @@
-// sched/PromptHourlyScheduler.java
 package org.example.ssj3pj.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.ssj3pj.dto.EnvironmentSummaryDto;
+import org.example.ssj3pj.entity.Image;
+import org.example.ssj3pj.repository.ImageRepository;
+import org.example.ssj3pj.services.ES.EnvironmentQueryService;
+import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.example.ssj3pj.services.VideoPromptSender;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -14,6 +20,8 @@ import org.springframework.stereotype.Component;
 public class PromptHourlyScheduler {
 
     private final VideoPromptSender sender;
+    private final ImageRepository imageRepository;
+    private final EnvironmentQueryService environmentQueryService;
 
     @Value("${PROMPT_DEFAULT_ES_DOC_ID:latest}")
     private String defaultEsDocId;
@@ -30,7 +38,27 @@ public class PromptHourlyScheduler {
         if (!enableScheduler) return;
         try {
             log.info("[SCHED] hourly start -> userId={}, esDocId={}", targetUserId, defaultEsDocId);
-            sender.sendEnvironmentDataToFastAPI(defaultEsDocId, targetUserId);
+
+            Optional<Image> latestImage = imageRepository.findTopByUser_IdOrderByCreatedAtDesc(targetUserId);
+            String imageKey = latestImage.map(Image::getImageKey).orElse(null);
+
+            if (imageKey == null) {
+                log.warn("[SCHED] No recent image found for user ID: {}. Skipping scheduled video generation.", targetUserId);
+                return;
+            }
+
+            // Get EnvironmentSummaryDto using defaultEsDocId
+            EnvironmentSummaryDto summaryDto = environmentQueryService.getSummaryByDocId(defaultEsDocId);
+            if (summaryDto == null) {
+                log.error("[SCHED] No environment summary found for default ES Doc ID: {}. Skipping scheduled video generation.", defaultEsDocId);
+                return;
+            }
+
+            // Set userId and imageKey in the DTO
+            summaryDto.setUserId(targetUserId);
+            summaryDto.setImageKey(imageKey);
+
+            sender.sendEnvironmentDataToFastAPI(summaryDto, targetUserId, imageKey);
             log.info("[SCHED] hourly done");
         } catch (Exception e) {
             log.error("[SCHED] hourly failed", e);
