@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.DailyDemographicsDto;
 import org.example.ssj3pj.dto.request.PeriodRequest;
 import org.example.ssj3pj.dto.TrafficSourceDto;
+import org.example.ssj3pj.dto.TrafficSourceCategoryDto;
 import org.example.ssj3pj.services.YoutubeAnalyticsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,7 +34,7 @@ public class YoutubeAnalyticsController {
             LocalDate end   = LocalDate.parse(req.getEndDate());
             log.info("traffic-source-summary: {} ~ {}", start, end);
 
-            List<TrafficSourceDto> data = service.trafficSourceSummary(start, end);
+            List<TrafficSourceCategoryDto> data = service.trafficSourceByCategory(start, end);
             return ResponseEntity.ok(Map.of("status", 200, "message", "성공", "data", data));
 
         } catch (DateTimeParseException e) {
