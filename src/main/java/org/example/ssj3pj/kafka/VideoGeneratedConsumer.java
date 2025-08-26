@@ -32,20 +32,16 @@ public class VideoGeneratedConsumer {
     )
     public void onMessage(String rawJson) {
         try {
-            log.info("kafka videocallback start");
             VideoGeneratedEvent event = objectMapper.readValue(rawJson, VideoGeneratedEvent.class);
 
-            log.info("fetch image entity");
             // Fetch Image entity
             Image image = imageRepository.findByImageKey(event.getImageKey())
                     .orElseThrow(() -> new RuntimeException("Image not found for path: " + event.getImageKey()));
 
-            log.info("fetch user entity");
             // Fetch User entity
             Users user = usersRepository.findById(event.getUserId())
                     .orElseThrow(() -> new RuntimeException("User not found for ID: " + event.getUserId()));
 
-            log.info("video build");
             Video video = Video.builder()
                     .videoKey(event.getVideoKey())
                     .user(user)
@@ -55,7 +51,6 @@ public class VideoGeneratedConsumer {
                     .build();
             sseHub.notifyVideoReady(event.getUserId());
 
-            log.info("video save");
             videoRepository.save(video);
             log.info("[KAFKA] Processed video.generated event for video: {}", event.getVideoKey());
 
