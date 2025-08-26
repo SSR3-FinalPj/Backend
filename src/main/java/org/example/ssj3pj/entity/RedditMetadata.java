@@ -12,7 +12,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @Entity
 @Table(
-        name = "reddit_metadata",
+        name = "es_reddit_metadata",
         indexes = {
                 @Index(name = "idx_reddit_meta_subreddit", columnList = "subreddit"),
                 @Index(name = "idx_reddit_meta_posted_at", columnList = "posted_at"),
