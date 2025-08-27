@@ -22,7 +22,7 @@ public class AiEvent {
     private String eventId;          // 멱등 키 (UUID 등)
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "user_id", nullable = false)   // ✅ 실제 Users.id FK
+    @JoinColumn(name = "userId", nullable = false)   // ✅ 실제 Users.id FK
     private Users user;
 
     @Column(nullable = false)

@@ -14,7 +14,7 @@ public class VideoGenerationRequestDto {
     private String imageKey;
 
     @JsonProperty("userId")
-    private String userId; // FastAPI expects string, so convert Long to String
+    private String userId; // FastAPI   expects string, so convert Long to String
 
     @JsonProperty("weather")
     private EnvironmentSummaryDto weatherData; // This will contain the ES summary
@@ -28,4 +28,5 @@ public class VideoGenerationRequestDto {
 
     @JsonProperty("user")
     private Map<String, Object> userData;
+
 }
