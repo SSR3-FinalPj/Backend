@@ -58,9 +58,7 @@ public class ImagePresignController {
 
         // 4) 키 생성: images/{userId}/{yyyy}/{MM}/{dd}/{uuid}.{ext}
         LocalDate d = LocalDate.now();
-        String key = String.format("images/%04d/%02d/%02d/%s.%s",
-                d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
-                UUID.randomUUID(), ext);
+        String key = String.format("images/%s.%s", UUID.randomUUID(), ext);
 
         // 5) Presigned PUT URL 발급 (StorageService는 2-인자 버전)
         String url = storage.presignPut(key, req.contentType());

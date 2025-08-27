@@ -13,7 +13,7 @@ public class VideoGenerationRequestDto {
     @JsonProperty("img")
     private String imageKey;
 
-    @JsonProperty("user_id")
+    @JsonProperty("userId")
     private String userId; // FastAPI expects string, so convert Long to String
 
     @JsonProperty("weather")

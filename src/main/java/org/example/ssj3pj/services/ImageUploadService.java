@@ -1,7 +1,6 @@
 package org.example.ssj3pj.services;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 import org.example.ssj3pj.entity.Image;
 import org.example.ssj3pj.entity.User.Users;
@@ -16,7 +15,6 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ImageUploadService {
 
     private final EnvironmentQueryService environmentQueryService;
@@ -27,9 +25,6 @@ public class ImageUploadService {
     public String uploadImageAndProcess(String imageKey, String locationCode, String userName){
         try{
 
-            log.info("Location code: {}", locationCode);
-            log.info("User Name: {}", userName);
-
 
             // 2. Save Image entity to DB
             Users user = usersRepository.findByUsername(userName)
@@ -38,14 +33,13 @@ public class ImageUploadService {
             Image imageEntity = Image.builder()
                     .imageKey(imageKey)
                     .user(user)
+                    .locationCode(locationCode)
                     .build();
             imageRepository.save(imageEntity);
-            log.info("Image entity saved: {}", imageKey);
 
             // 3. Get environment summary from ES
             EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(locationCode);
             if (summary == null) {
-                log.error("No environment summary found for location code: {}. Cannot proceed with video generation.", locationCode);
                 throw new RuntimeException("No environment summary found for location code: " + locationCode);
             }
 
@@ -55,12 +49,10 @@ public class ImageUploadService {
 
             // 4. Send data to FastAPI (AI service)
             videoPromptSender.sendEnvironmentDataToFastAPI(summary, user.getId(), imageKey);
-            log.info("Sent data to FastAPI for image: {} and location: {}", imageKey, locationCode);
 
             return "Image uploaded and processing initiated for location code: " + locationCode;
 
         }catch (Exception e) {
-            log.error("Error during image processing", e);
             throw new RuntimeException("Error during image processing", e);
         }
     }

@@ -24,6 +24,9 @@ public class Image {
     @Column(name = "image_key", length = 500, unique = true, nullable = false)
     private String imageKey;
 
+    @Column(name = "location_code", length = 10)
+    private String locationCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
     private Users user;

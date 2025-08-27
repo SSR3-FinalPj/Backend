@@ -4,7 +4,6 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.entity.Image;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.ImageRepository;
@@ -24,7 +23,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/images")
 @RequiredArgsConstructor
-@Slf4j
 public class ImageConfirmController {
 
     private final StorageService storage; // head(), presignGet() 사용
@@ -56,14 +54,17 @@ public class ImageConfirmController {
             // (선택) 프리뷰용 GET URL
             String viewUrl = storage.presignGet(req.key(), head.contentType());
 
+            String key = req.key();
+            String pureKey = key.startsWith("images/") ? key.substring("images/".length()) : key;
+
             Users user = usersRepository.findByUsername(userName)
                     .orElseThrow(() -> new RuntimeException("User not found for ID: " + userName));
 
-            imageUploadService.uploadImageAndProcess(req.key(), req.locationCode, userName);
+            imageUploadService.uploadImageAndProcess(pureKey, req.locationCode, userName);
             // 편의상 메타정보까지 응답. 정말 최소만 원하면 ok/key/locationCode만 돌려도 됨.
             return Map.of(
                     "ok", true,
-                    "key", req.key(),
+                    "key", pureKey,
                     "locationCode", req.locationCode(),
                     "contentType", head.contentType(),
                     "size", head.contentLength(),
