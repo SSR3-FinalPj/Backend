@@ -3,6 +3,7 @@ package org.example.ssj3pj.services;
 import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
@@ -20,6 +21,7 @@ import org.example.ssj3pj.dto.VideoGenerationRequestDto;
 
 // 프롬프트 전송
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class VideoPromptSender {
 
@@ -37,6 +39,7 @@ public class VideoPromptSender {
      * - 로그인한 사용자의 users.id를 DTO에 포함하여 전송
      */
     public void sendEnvironmentDataToFastAPI(EnvironmentSummaryDto weatherData, Long userId, String imageKey) {
+        log.info("API START");
         VideoGenerationRequestDto requestDto = VideoGenerationRequestDto.builder()
                 .imageKey(imageKey)
                 .userId(String.valueOf(userId)) // Convert Long to String
@@ -45,9 +48,10 @@ public class VideoPromptSender {
                 .redditData(Map.of())  // Empty map as per schema
                 .userData(Map.of())    // Empty map as per schema
                 .build();
-
+        log.info("Build END");
         String url = bridgeBaseUrl + "/api/generate-video"; // Correct endpoint
         try {
+            log.info("Bridge START");
             ResponseEntity<String> response = restTemplate.postForEntity(url, requestDto, String.class);
             System.out.println("✅ Bridge 응답: " + response.getBody());
         } catch (Exception e) {

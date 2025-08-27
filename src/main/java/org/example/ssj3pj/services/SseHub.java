@@ -63,6 +63,11 @@ public class SseHub {
         send(userId, VIDEO_READY_EVENT, payload);
     }
 
+    public void notifyJobCompleted(Long userId, String resultKey) {
+        var payload = Map.of("resultKey", resultKey);
+        send(userId, "job-completed", payload);
+    }
+
     /** ★ 하트비트: 일정 주기로 모든 연결에 ping 전송 */
     @Scheduled(fixedDelayString = "${sse.heartbeat-millis:25000}")
     public void heartbeat() {

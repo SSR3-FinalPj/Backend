@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
-import org.example.ssj3pj.services.ImageUploadService;
+
 import org.example.ssj3pj.services.StorageService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
