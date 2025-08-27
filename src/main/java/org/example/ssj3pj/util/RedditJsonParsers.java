@@ -1,7 +1,7 @@
 package org.example.ssj3pj.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.example.ssj3pj.dto.RedditCommentDto;
+import org.example.ssj3pj.dto.reddit.RedditCommentDto;
 
 import java.util.*;
 

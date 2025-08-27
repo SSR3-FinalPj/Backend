@@ -1,8 +1,8 @@
-package org.example.ssj3pj.controller;
+package org.example.ssj3pj.controller.youtube;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.YoutubeContentDetailDto;
+import org.example.ssj3pj.dto.youtube.YoutubeContentDetailDto;
 import org.example.ssj3pj.services.ContentsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,4 +1,4 @@
-package org.example.ssj3pj.dto;
+package org.example.ssj3pj.dto.youtube;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;

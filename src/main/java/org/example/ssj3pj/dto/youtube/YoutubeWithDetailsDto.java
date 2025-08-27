@@ -1,4 +1,4 @@
-package org.example.ssj3pj.dto;
+package org.example.ssj3pj.dto.youtube;
 
 import lombok.*;
 import org.example.ssj3pj.entity.YoutubeMetadata;

@@ -1,4 +1,4 @@
-package org.example.ssj3pj.services;
+package org.example.ssj3pj.services.youtube;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
