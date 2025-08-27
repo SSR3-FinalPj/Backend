@@ -40,4 +40,15 @@ public class RestTemplateConfig {
         f.setReadTimeout(readTimeoutMs);
         return new RestTemplate(f);
     }
+
+    @Bean(name = "redditRestTemplate")
+    public RestTemplate redditRestTemplate(
+            @Value("${reddit.connect-timeout-ms:5000}") int connectTimeoutMs,
+            @Value("${reddit.read-timeout-ms:10000}") int readTimeoutMs
+    ) {
+        var f = new SimpleClientHttpRequestFactory();
+        f.setConnectTimeout(connectTimeoutMs);
+        f.setReadTimeout(readTimeoutMs);
+        return new RestTemplate(f);
+    }
 }

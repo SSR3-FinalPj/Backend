@@ -1,4 +1,4 @@
-package org.example.ssj3pj.dto;
+package org.example.ssj3pj.dto.reddit;
 
 import lombok.Builder;
 import lombok.Data;

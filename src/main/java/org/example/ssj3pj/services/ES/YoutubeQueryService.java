@@ -8,9 +8,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.YoutubeSummaryDto;
-import org.example.ssj3pj.dto.YoutubeCommentDto;
-import org.example.ssj3pj.dto.YoutubeThumbnailDto;
+import org.example.ssj3pj.dto.youtube.YoutubeSummaryDto;
+import org.example.ssj3pj.dto.youtube.YoutubeCommentDto;
+import org.example.ssj3pj.dto.youtube.YoutubeThumbnailDto;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

@@ -2,14 +2,13 @@ package org.example.ssj3pj.repository;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.example.ssj3pj.dto.DailyDemographicsDto;
-import org.example.ssj3pj.dto.DemographicPoint;
-import org.example.ssj3pj.dto.TrafficSourceDto;
+import org.example.ssj3pj.dto.youtube.DailyDemographicsDto;
+import org.example.ssj3pj.dto.youtube.DemographicPoint;
+import org.example.ssj3pj.dto.youtube.TrafficSourceDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 

@@ -1,9 +1,9 @@
-package org.example.ssj3pj.controller;
+package org.example.ssj3pj.controller.youtube;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.YoutubeWithDetailsDto;
-import org.example.ssj3pj.dto.YoutubeSummaryDto;
+import org.example.ssj3pj.dto.youtube.YoutubeWithDetailsDto;
+import org.example.ssj3pj.dto.youtube.YoutubeSummaryDto;
 import org.example.ssj3pj.entity.YoutubeMetadata;
 import org.example.ssj3pj.repository.YoutubeMetadataRepository;
 import org.example.ssj3pj.services.ES.YoutubeQueryService;

@@ -1,4 +1,4 @@
-package org.example.ssj3pj.controller;
+package org.example.ssj3pj.controller.youtube;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,7 +7,7 @@ import org.example.ssj3pj.dto.youtube.VideoListDto;
 import org.example.ssj3pj.dto.youtube.VideoDetailDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
-import org.example.ssj3pj.services.YouTubeChannelService;
+import org.example.ssj3pj.services.youtube.YouTubeChannelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

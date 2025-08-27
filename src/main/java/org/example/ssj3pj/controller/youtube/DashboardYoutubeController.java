@@ -1,4 +1,4 @@
-package org.example.ssj3pj.controller;
+package org.example.ssj3pj.controller.youtube;
 
 import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
 import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;

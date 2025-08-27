@@ -7,7 +7,7 @@ import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.example.ssj3pj.dto.RedditSummaryDto;
+import org.example.ssj3pj.dto.reddit.RedditSummaryDto;
 import org.springframework.stereotype.Service;
 
 import static org.example.ssj3pj.util.JsonNodeUtils.*;
