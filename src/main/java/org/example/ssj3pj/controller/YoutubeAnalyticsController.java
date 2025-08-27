@@ -2,10 +2,9 @@ package org.example.ssj3pj.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.DailyDemographicsDto;
+import org.example.ssj3pj.dto.youtube.DailyDemographicsDto;
 import org.example.ssj3pj.dto.request.PeriodRequest;
-import org.example.ssj3pj.dto.TrafficSourceDto;
-import org.example.ssj3pj.dto.TrafficSourceCategoryDto;
+import org.example.ssj3pj.dto.youtube.TrafficSourceCategoryDto;
 import org.example.ssj3pj.services.YoutubeAnalyticsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

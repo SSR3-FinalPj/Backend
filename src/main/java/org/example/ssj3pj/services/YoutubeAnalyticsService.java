@@ -1,9 +1,9 @@
 package org.example.ssj3pj.services;
 
 import lombok.RequiredArgsConstructor;
-import org.example.ssj3pj.dto.DailyDemographicsDto;
-import org.example.ssj3pj.dto.TrafficSourceDto;
-import org.example.ssj3pj.dto.TrafficSourceCategoryDto;
+import org.example.ssj3pj.dto.youtube.DailyDemographicsDto;
+import org.example.ssj3pj.dto.youtube.TrafficSourceDto;
+import org.example.ssj3pj.dto.youtube.TrafficSourceCategoryDto;
 import org.example.ssj3pj.repository.YoutubeAnalyticsRepository;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +11,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Arrays;
 import java.util.stream.Collectors;
 
 /** 얇은 서비스: 유효성 검사 + 레포 위임 */
