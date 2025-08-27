@@ -22,7 +22,7 @@ public class ImageUploadService {
     private final ImageRepository imageRepository;
     private final UsersRepository usersRepository;
 
-    public String uploadImageAndProcess(String imageKey, String locationCode, String userName){
+    public String uploadImageAndProcess(String imageKey, String locationCode, String userName, String purpose){
         try{
 
 
@@ -34,6 +34,7 @@ public class ImageUploadService {
                     .imageKey(imageKey)
                     .user(user)
                     .locationCode(locationCode)
+                    .purpose(purpose)
                     .build();
             imageRepository.save(imageEntity);
 

@@ -27,6 +27,9 @@ public class Image {
     @Column(name = "location_code", length = 10)
     private String locationCode;
 
+    @Column(name = "purpose", length = 20)
+    private String purpose;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false)
     private Users user;
