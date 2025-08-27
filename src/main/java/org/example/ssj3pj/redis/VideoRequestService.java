@@ -14,4 +14,7 @@ public class VideoRequestService {
         UserRequestData data = new UserRequestData(userId, imageKey, locationCode);
         redisTemplate.opsForValue().set(key, data);
     }
+    public UserRequestData getUserRequest(Long userId) {
+        return (UserRequestData) redisTemplate.opsForValue().get("video:request:" + userId);
+    }
 }

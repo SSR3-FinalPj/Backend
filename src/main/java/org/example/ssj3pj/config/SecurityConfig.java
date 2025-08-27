@@ -40,7 +40,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()     // 프리플라이트 허용
                         .requestMatchers(
                                 "/api/auth/login", "/api/auth/refresh", "/api/auth/logout","/api/notify/**",
-                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/google/**","/api/dashboard/youtube/**", "/api/upload/*","/api/images/*","/api/youtube/**","/api/youtube/channel/**","/api/youtube/video/**"
+                                "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html","/api/google/**",
+                                "/api/dashboard/youtube/**", "/api/upload/*","/api/images/*","/api/youtube/**",
+                                "api/reddit/**"
                         ).permitAll()
                         .requestMatchers("/api/youtube/channelId").permitAll()   // login-url, callback 등 전부 개방
 
