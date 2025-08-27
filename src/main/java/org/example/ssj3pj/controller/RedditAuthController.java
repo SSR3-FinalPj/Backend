@@ -71,7 +71,7 @@ public class RedditAuthController {
             return;
         }
 
-        Long userId = oAuthStateService.consumeState(PROVIDER, state);
+        Long userId = oAuthStateService.consumeState("reddit", state);
         if (userId == null) {
             response.setStatus(400);
             response.getWriter().write("유효하지 않은 state(만료/위조/재사용)");
@@ -83,21 +83,36 @@ public class RedditAuthController {
 
         redditOAuthService.handleOAuthCallback(code, user);
 
+        // ✅ 현재 탭으로 열린 경우 돌아갈 프런트 URL (환경에 맞게 바꿔주세요)
+        String appRedirect = "http://localhost:5173";
+
         String html = """
-            <!doctype html>
-            <html><head><meta charset="utf-8"></head>
-            <body>
-            <script>
-              try { window.opener && window.opener.postMessage({ type: "REDDIT_LINKED", ok: true }, "*"); } catch(e){}
-              window.close();
-              setTimeout(function(){ try{ window.open('','_self'); window.close(); }catch(e){} }, 0);
-            </script>
-            </body></html>
-            """;
+    <!doctype html>
+    <html><head><meta charset="utf-8"><title>Reddit Linked</title></head>
+    <body>
+    <script>
+      (function () {
+        try {
+          if (window.opener && !window.opener.closed) {
+            try { window.opener.postMessage({ type: "REDDIT_LINKED", ok: true }, "*"); } catch (e) {}
+            window.close();
+            setTimeout(function(){ try{ window.open('','_self'); window.close(); }catch(e){} }, 0);
+            return;
+          }
+        } catch (e) {}
+        // 현재 탭으로 열린 경우: 프론트로 이동
+        location.replace("%s");
+      })();
+    </script>
+    연결되었습니다. 이 창은 자동으로 닫히거나 리다이렉트됩니다.
+    </body></html>
+    """.formatted(appRedirect);
+
         response.setStatus(200);
         response.setContentType("text/html;charset=UTF-8");
         response.getWriter().write(html);
     }
+
 
     @Tag(name = "redditStatus", description = "Reddit 연동확인")
     @GetMapping("/status")

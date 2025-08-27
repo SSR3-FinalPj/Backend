@@ -10,6 +10,7 @@ import org.example.ssj3pj.repository.RedditTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientResponseException;
@@ -23,6 +24,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class RedditOAuthService {
 
     // 필요 시 @Qualifier("redditRestTemplate") 사용
@@ -37,6 +39,7 @@ public class RedditOAuthService {
     @Value("${reddit.api-base}")      String apiBase;    // https://oauth.reddit.com
 
     /** 콜백에서 code를 받아 토큰 교환 → reddit_token 업서트 */
+
     public void handleOAuthCallback(String code, Users user) {
         TokenResponseDto token = exchangeCode(code);
         RedditMeDto me = fetchIdentity(token.getAccessToken());

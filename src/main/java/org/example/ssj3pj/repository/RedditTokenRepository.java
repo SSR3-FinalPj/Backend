@@ -4,11 +4,14 @@ import jakarta.persistence.LockModeType;
 import org.example.ssj3pj.entity.User.RedditToken;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-
+@Repository
+@Transactional
 public interface RedditTokenRepository extends JpaRepository<RedditToken, Long> {
 
     // user_id로 단건 조회 (유니크)

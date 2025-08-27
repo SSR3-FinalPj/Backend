@@ -117,7 +117,7 @@ reddit:
   authorize-url: https://www.reddit.com/api/v1/authorize
   token-url: https://www.reddit.com/api/v1/access_token
   api-base: https://oauth.reddit.com
-  redirect-uri: ${REDDIT_REDIRECT_URI:http://localhost:8080/oauth/reddit/callback}
+  redirect-uri: ${REDDIT_REDIRECT_URI:http://localhost:8080/api/reddit/callback}
   scopes: identity read submit
 
 security:
