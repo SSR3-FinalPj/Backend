@@ -60,7 +60,7 @@ public class RedditAuthController {
         return ResponseEntity.ok(url);
     }
 
-    @Tag(name = "redditLogin", description = "Reddit 콜백")
+    @Tag(name = "redditLogin", description = "Reddit 로그인")
     @GetMapping("/callback")
     public void callback(@RequestParam String code,
                          @RequestParam(required = false) String state,
@@ -113,7 +113,7 @@ public class RedditAuthController {
     }
 
 
-    @Tag(name = "redditStatus", description = "Reddit 연동확인")
+    @Tag(name = "redditLogin", description = "Reddit 로그인")
     @GetMapping("/status")
     public ResponseEntity<RedditLinkSimpleDto> status(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null) {

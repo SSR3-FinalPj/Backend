@@ -1,5 +1,6 @@
 package org.example.ssj3pj.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.dashboard.JobResultDto;
 import org.example.ssj3pj.security.jwt.JwtUtils;
@@ -11,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
-// 
+//
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
@@ -19,7 +20,7 @@ public class JobResultController {
 
     private final JwtUtils jwtUtils;
     private final JobResultService jobResultService;
-
+    @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/result_id")
     public List<JobResultDto> getMyJobResults(HttpServletRequest request) {
         String auth = request.getHeader("Authorization");

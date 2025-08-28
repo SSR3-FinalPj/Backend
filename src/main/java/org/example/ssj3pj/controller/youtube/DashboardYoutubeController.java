@@ -1,5 +1,6 @@
 package org.example.ssj3pj.controller.youtube;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
 import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;
 import org.example.ssj3pj.dto.dashboard.DashboardTotalStats;
@@ -20,6 +21,7 @@ public class DashboardYoutubeController {
     private final DashboardYoutubeService svc;
 
     // ① 단일 날짜
+    @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping
     public ResponseEntity<DashboardDayStats> daily(
             @RequestParam String date,
@@ -35,6 +37,7 @@ public class DashboardYoutubeController {
     }
 
     // ② 기간(일별 배열)
+    @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/range")
     public ResponseEntity<DashboardRangeStats> range(
             @RequestParam String startDate,
@@ -52,6 +55,7 @@ public class DashboardYoutubeController {
     }
 
     // ③ 전체 누적
+    @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/total")
     public DashboardTotalStats total(
             @RequestParam(required = false) String region,
