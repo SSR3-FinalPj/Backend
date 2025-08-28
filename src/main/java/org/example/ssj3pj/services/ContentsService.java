@@ -73,72 +73,81 @@ public class ContentsService {
      * @return 콘텐츠 상세 정보
      * @throws RuntimeException 데이터를 찾을 수 없는 경우
      */
-    public YoutubeContentDetailDto getContentDetailByVideoId(String videoId) {
+    public YoutubeContentDetailDto getContentDetailByVideoId(String videoId, String username) {
         try {
-            log.info("ES에서 비디오 검색: videoId={}, index={}", videoId, youtubeIndex);
-            
-            // ES에서 video_id로 직접 검색 - 여러 방법 시도
-            SearchResponse<Map> response = null;
-            
-            // 방법 1: keyword 필드로 시도
-            try {
-                response = elasticsearchClient.search(s -> s
-                        .index(youtubeIndex)
-                        .size(1)
-                        .query(q -> q.term(t -> t.field("video_id.keyword").value(videoId))),
-                        Map.class);
-                log.info("keyword 필드 검색 결과: {} hits", response.hits().hits().size());
-            } catch (Exception e) {
-                log.warn("keyword 필드 검색 실패: {}", e.getMessage());
-            }
-            
-            // 방법 1에서 결과가 없으면 방법 2 시도
-            if (response == null || response.hits().hits().isEmpty()) {
-                try {
-                    response = elasticsearchClient.search(s -> s
-                            .index(youtubeIndex)
-                            .size(1)
-                            .query(q -> q.term(t -> t.field("video_id").value(videoId))),
-                            Map.class);
-                    log.info("일반 필드 검색 결과: {} hits", response.hits().hits().size());
-                } catch (Exception e) {
-                    log.warn("일반 필드 검색 실패: {}", e.getMessage());
-                }
-            }
-            
-            // 방법 2에서도 결과가 없으면 방법 3 시도  
-            if (response == null || response.hits().hits().isEmpty()) {
-                try {
-                    response = elasticsearchClient.search(s -> s
-                            .index(youtubeIndex)
-                            .size(1)
-                            .query(q -> q.match(m -> m.field("video_id").query(videoId))),
-                            Map.class);
-                    log.info("match 쿼리 검색 결과: {} hits", response.hits().hits().size());
-                } catch (Exception e) {
-                    log.warn("match 쿼리 검색 실패: {}", e.getMessage());
-                }
-            }
+            Users user = usersRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found for username: " + username));
 
-            if (response == null || response.hits().hits().isEmpty()) {
-                throw new RuntimeException("YouTube 데이터 없음: " + videoId);
-            }
 
-            // 첫 번째 결과 사용
-            Map<String, Object> source = response.hits().hits().get(0).source();
-            if (source == null) {
-                throw new RuntimeException("ES 소스 데이터 없음: " + videoId);
-            }
-            
-            // 디버깅: 실제 ES 데이터 구조 로그
-            log.info("ES 소스 데이터 필드들: {}", source.keySet());
-            log.info("thumbnail_url 필드 존재: {}", source.containsKey("thumbnail_url"));
-            if (source.containsKey("thumbnail_url")) {
-                log.info("thumbnail_url 값: {}", source.get("thumbnail_url"));
-            }
+            YoutubeMetadata metadata = youtubeMetadataRepository.findFirstByUserOrderByIndexedAtDesc(user)
+                    .orElseThrow(() -> new RuntimeException("Youtube metadata not found for user: " + username));
+            String esDocId = metadata.getEsDocId();
 
-            // API 명세에 맞는 DTO로 변환
-            return convertToContentDetailDto(videoId, source);
+            YoutubeContentDetailDto videoDetail = youtubeQueryService.findAllDetailForVideo(esDocId, videoId);
+
+            return videoDetail;
+//            // ES에서 video_id로 직접 검색 - 여러 방법 시도
+//            SearchResponse<Map> response = null;
+//
+//            // 방법 1: keyword 필드로 시도
+//            try {
+//                response = elasticsearchClient.search(s -> s
+//                        .index(youtubeIndex)
+//                        .size(1)
+//                        .query(q -> q.term(t -> t.field("video_id.keyword").value(videoId))),
+//                        Map.class);
+//                log.info("keyword 필드 검색 결과: {} hits", response.hits().hits().size());
+//            } catch (Exception e) {
+//                log.warn("keyword 필드 검색 실패: {}", e.getMessage());
+//            }
+//
+//            // 방법 1에서 결과가 없으면 방법 2 시도
+//            if (response == null || response.hits().hits().isEmpty()) {
+//                try {
+//                    response = elasticsearchClient.search(s -> s
+//                            .index(youtubeIndex)
+//                            .size(1)
+//                            .query(q -> q.term(t -> t.field("video_id").value(videoId))),
+//                            Map.class);
+//                    log.info("일반 필드 검색 결과: {} hits", response.hits().hits().size());
+//                } catch (Exception e) {
+//                    log.warn("일반 필드 검색 실패: {}", e.getMessage());
+//                }
+//            }
+//
+//            // 방법 2에서도 결과가 없으면 방법 3 시도
+//            if (response == null || response.hits().hits().isEmpty()) {
+//                try {
+//                    response = elasticsearchClient.search(s -> s
+//                            .index(youtubeIndex)
+//                            .size(1)
+//                            .query(q -> q.match(m -> m.field("video_id").query(videoId))),
+//                            Map.class);
+//                    log.info("match 쿼리 검색 결과: {} hits", response.hits().hits().size());
+//                } catch (Exception e) {
+//                    log.warn("match 쿼리 검색 실패: {}", e.getMessage());
+//                }
+//            }
+//
+//            if (response == null || response.hits().hits().isEmpty()) {
+//                throw new RuntimeException("YouTube 데이터 없음: " + videoId);
+//            }
+//
+//            // 첫 번째 결과 사용
+//            Map<String, Object> source = response.hits().hits().get(0).source();
+//            if (source == null) {
+//                throw new RuntimeException("ES 소스 데이터 없음: " + videoId);
+//            }
+//
+//            // 디버깅: 실제 ES 데이터 구조 로그
+//            log.info("ES 소스 데이터 필드들: {}", source.keySet());
+//            log.info("thumbnail_url 필드 존재: {}", source.containsKey("thumbnail_url"));
+//            if (source.containsKey("thumbnail_url")) {
+//                log.info("thumbnail_url 값: {}", source.get("thumbnail_url"));
+//            }
+//
+//            // API 명세에 맞는 DTO로 변환
+//            return convertToContentDetailDto(videoId, source);
         } catch (Exception e) {
             log.error("콘텐츠 상세 조회 실패: videoId={}", videoId, e);
             throw new RuntimeException("콘텐츠 조회 실패: " + e.getMessage(), e);

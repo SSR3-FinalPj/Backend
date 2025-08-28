@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.youtube.DailyDemographicsDto;
 import org.example.ssj3pj.dto.youtube.TrafficSourceDto;
 import org.example.ssj3pj.dto.youtube.TrafficSourceCategoryDto;
+import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.YoutubeAnalyticsRepository;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,7 @@ public class YoutubeAnalyticsService {
     private final YoutubeAnalyticsRepository repo;
 
     /** 단일 비디오의 트래픽 소스 조회 (카테고리별 그룹핑) */
-    public List<TrafficSourceCategoryDto> trafficSourceByVideoId(String videoId) {
+    public List<TrafficSourceCategoryDto> trafficSourceByVideoId(Users user, String videoId) {
         if (videoId == null || videoId.trim().isEmpty()) {
             throw new IllegalArgumentException("videoId must not be empty");
         }

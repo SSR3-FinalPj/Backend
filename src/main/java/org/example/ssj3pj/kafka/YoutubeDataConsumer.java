@@ -27,10 +27,11 @@ public class YoutubeDataConsumer {
 
     @KafkaListener(
             topics = "${spring.topics.kafka.raw2}",
-            groupId = "youtube-metadata-group",
+            groupId = "#{T(java.util.UUID).randomUUID().toString()}",
             properties = {
                     "spring.json.trusted.packages=*",
-                    "spring.deserializer.value.delegate.class=org.apache.kafka.common.serialization.StringDeserializer"
+                    "spring.deserializer.value.delegate.class=org.apache.kafka.common.serialization.StringDeserializer",
+                    "auto.offset.reset=earliest"
             }
     )
     public void consumeYoutubeData(String jsonMessage, Acknowledgment acknowledgment) {

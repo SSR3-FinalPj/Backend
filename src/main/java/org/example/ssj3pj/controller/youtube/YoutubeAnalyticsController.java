@@ -5,10 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.youtube.DailyDemographicsDto;
 import org.example.ssj3pj.dto.request.PeriodRequest;
 import org.example.ssj3pj.dto.youtube.TrafficSourceCategoryDto;
+import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.youtube.YoutubeAnalyticsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -23,15 +26,19 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class YoutubeAnalyticsController {
-
+    private final UsersRepository usersRepository;
     private final YoutubeAnalyticsService service;
 
     @PostMapping("/traffic-source-summary/{videoId}")
-    public ResponseEntity<?> trafficSourceSummary(@PathVariable String videoId) {
+    public ResponseEntity<?> trafficSourceSummary(Principal principal, @PathVariable String videoId) {
         try {
             log.info("traffic-source-summary for videoId: {}", videoId);
+            String username = principal.getName();
+            // 사용자 조회
+            Users user = usersRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-            List<TrafficSourceCategoryDto> data = service.trafficSourceByVideoId(videoId);
+            List<TrafficSourceCategoryDto> data = service.trafficSourceByVideoId(user, videoId);
             return ResponseEntity.ok(Map.of("status", 200, "message", "성공", "data", data));
 
         } catch (IllegalArgumentException e) {
