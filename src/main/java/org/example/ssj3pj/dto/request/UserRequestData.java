@@ -8,7 +8,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserRequestData {
+    private Long jobId;
     private Long userId;
     private String imageKey;
-    private String locationCode; // ✅ 추가
+    private String locationCode;
 }

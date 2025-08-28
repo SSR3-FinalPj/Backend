@@ -26,7 +26,6 @@ public class DynamicVideoScheduler {
     private final VideoPromptSender sender;
     private final VideoRequestService videoRequestService;
 
-    // 🔄 jobId별 스케줄 관리
     private final Map<Long, ScheduledFuture<?>> jobTasks = new ConcurrentHashMap<>();
 
     /**
@@ -37,35 +36,30 @@ public class DynamicVideoScheduler {
         stopJobSchedule(jobId);
 
         Runnable task = () -> {
-            UserRequestData data = videoRequestService.getUserRequest(jobId);
+            UserRequestData data = videoRequestService.getJobRequest(jobId);
             if (data == null) {
-                log.warn("[SCHED] No request data in Redis for jobId={}", jobId);
+                log.warn("[SCHED] No request data in Redis for job {}", jobId);
                 return;
             }
 
-            // 매 실행 시점마다 최신 환경 데이터 조회
-            EnvironmentSummaryDto summaryDto = environmentQueryService.getSummaryByDocId(data.getLocationCode());
-            if (summaryDto == null) {
-                log.warn("[SCHED] No ES data found for locationCode={} jobId={}", data.getLocationCode(), jobId);
+            // 매 실행마다 최신 환경 데이터 가져오기
+            EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
+            if (summary == null) {
+                log.warn("[SCHED] No ES data for locationCode={} job={}", data.getLocationCode(), jobId);
                 return;
             }
 
-            // 요청 시점에 고정된 jobId + imageKey 세팅
-            summaryDto.setUserId(data.getUserId());
-            summaryDto.setImageKey(data.getImageKey());
-
-            try {
-                sender.sendEnvironmentDataToFastAPI(summaryDto, jobId, data.getImageKey());
-                log.info("[SCHED] Sent video request for jobId={}, imageKey={}", jobId, data.getImageKey());
-            } catch (Exception e) {
-                log.error("[SCHED] Failed to send video request for jobId={}", jobId, e);
-            }
+            // FastAPI 전송
+            sender.sendEnvironmentDataToFastAPI(summary, data.getUserId(), data.getImageKey());
         };
 
-        // 요청 즉시 실행 → 이후 1시간마다 반복
+        // 즉시 실행
+        task.run();
+
+        // 1시간마다 반복 실행
         ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(
                 task,
-                Date.from(Instant.now()),
+                Date.from(Instant.now().plusSeconds(3600)), // 1시간 뒤부터
                 Duration.ofHours(1).toMillis()
         );
 
@@ -73,8 +67,9 @@ public class DynamicVideoScheduler {
 
         // 18시에 자동 종료 예약
         scheduleStopAt18(jobId);
-        log.info("[SCHED] Started hourly schedule for jobId={} (userId={})", jobId, userId);
     }
+
+
 
     /**
      * 특정 jobId의 스케줄링 중단

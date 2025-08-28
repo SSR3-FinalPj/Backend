@@ -33,29 +33,6 @@ public class InitUserConfig {
                                     .build()
                     ));
 
-            // 2) Job 생성 (테스트 용도)
-            Job job = Job.builder()
-                    .user(user)
-                    .status("COMPLETED")
-                    .purpose("테스트 영상 스트리밍")
-                    .locationCode("SEOUL")
-                    .sourceImageKey("images/sample.png")
-                    .build();
-            jobRepository.save(job);
-
-            // 3) JobResult 생성 (S3에 올려둔 테스트 영상 key 사용)
-            if (jobResultRepository.findAllByJobId(job.getId()).isEmpty()) {
-                JobResult result = JobResult.builder()
-                        .job(job)
-                        .status("COMPLETED")
-                        .resultType("video")
-                        .resultKey("video/.mp4") // ⚠️ 실제 S3에 올려둔 파일 경로
-                        .promptText("테스트 영상")
-                        .build();
-                jobResultRepository.save(result);
-
-                System.out.println("샘플 JobResult 생성 완료: resultId = " + result.getId());
-            }
         };
     }
 }

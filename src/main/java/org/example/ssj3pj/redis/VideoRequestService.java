@@ -10,13 +10,14 @@ import org.springframework.stereotype.Service;
 public class VideoRequestService {
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public void saveUserRequest(Long jobId, Long userId, String imageKey, String locationCode) {
-        String key = "video:request:" + jobId;
-        UserRequestData data = new UserRequestData(userId, imageKey, locationCode);
+    public void saveJobRequest(Long jobId, Long userId, String imageKey, String locationCode) {
+        String key = "video:request:job:" + jobId;
+        UserRequestData data = new UserRequestData(jobId, userId, imageKey, locationCode);
         redisTemplate.opsForValue().set(key, data);
     }
 
-    public UserRequestData getUserRequest(Long jobId) {
-        return (UserRequestData) redisTemplate.opsForValue().get("video:request:" + jobId);
+    public UserRequestData getJobRequest(Long jobId) {
+        return (UserRequestData) redisTemplate.opsForValue().get("video:request:job:" + jobId);
     }
 }
+

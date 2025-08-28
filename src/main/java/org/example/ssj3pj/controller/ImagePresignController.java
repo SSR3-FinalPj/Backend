@@ -56,7 +56,6 @@ public class ImagePresignController {
         }
         String ext = "image/jpeg".equalsIgnoreCase(req.contentType()) ? "jpg" : "png";
 
-        // 4) 키 생성: images/{userId}/{yyyy}/{MM}/{dd}/{uuid}.{ext}
         LocalDate d = LocalDate.now();
         String key = String.format("images/%s.%s", UUID.randomUUID(), ext);
 
