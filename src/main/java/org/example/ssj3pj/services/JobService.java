@@ -23,8 +23,6 @@ public class JobService {
     private final JobRepository jobRepository;
     private final JobResultRepository jobResultRepository;
     private final UsersRepository usersRepository;
-    private final EnvironmentQueryService environmentQueryService;
-    private final VideoPromptSender videoPromptSender;
     private final SseHub sseHub;
 
     // ✅ 새로 주입
@@ -33,38 +31,29 @@ public class JobService {
 
     @Transactional
     public Job createJobAndProcess(String imageKey, String locationCode, String purpose, String userName) {
-        // 1. Find User
+        // 1. 사용자 조회
         Users user = usersRepository.findByUsername(userName)
-                .orElseThrow(() -> new RuntimeException("User not found for ID: " + userName));
+                .orElseThrow(() -> new RuntimeException("User not found: " + userName));
 
-        // 2. Create and save Job entity
+        // 2. Job 생성 및 저장
         Job job = Job.builder()
                 .user(user)
-                .status("PROCESSING") // Immediately set to processing
+                .status("PROCESSING")
                 .purpose(purpose)
                 .locationCode(locationCode)
                 .sourceImageKey(imageKey)
                 .build();
         jobRepository.save(job);
 
-        // 3. Redis 저장 (스케줄러가 사용할 데이터)
-        videoRequestService.saveUserRequest(job.getId(), user.getId(), imageKey, locationCode);
+        // 3. Redis에 jobId + userId + imageKey + locationCode 저장
+        videoRequestService.saveJobRequest(job.getId(), user.getId(), imageKey, locationCode);
 
-        // 4. 스케줄링 시작 (jobId를 esDocId처럼 사용)
+        // 4. 스케줄링 시작 (jobId 기준으로 관리, FastAPI에는 userId 전달)
         dynamicVideoScheduler.startJobSchedule(job.getId(), user.getId());
-
-        // 5. Get environment summary from ES (즉시 1회 실행용)
-        EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(locationCode);
-        if (summary == null) {
-            throw new RuntimeException("No environment summary found for location code: " + locationCode);
-        }
-
-        log.info("ES END");
-        // 6. Send data to FastAPI (AI service) with Job ID
-        videoPromptSender.sendEnvironmentDataToFastAPI(summary, job.getId(), imageKey);
 
         return job;
     }
+
 
     @Transactional
     public JobResult completeJob(Job job, String resultKey, String resultType) {
