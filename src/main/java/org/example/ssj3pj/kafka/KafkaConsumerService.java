@@ -74,7 +74,7 @@ public class KafkaConsumerService {
 
                     // 배치 사이즈 도달 시 경고 (완료 신호 대기)
                     if (currentCount >= BATCH_SIZE) {
-                        log.warn("⚠️ 배치 사이즈({})에 도달했습니다. 완료 신호 대기 중...", BATCH_SIZE);
+                        log.warn("⚠️ 배치 사이즈({}})에 도달했습니다. 완료 신호 대기 중...", BATCH_SIZE);
                     }
                 }
             }
@@ -183,3 +183,4 @@ public class KafkaConsumerService {
         }
     }
 }
+

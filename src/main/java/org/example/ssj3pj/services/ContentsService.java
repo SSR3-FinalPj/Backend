@@ -2,12 +2,21 @@ package org.example.ssj3pj.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.youtube.YoutubeContentDetailDto;
+import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.entity.YoutubeMetadata;
+import org.example.ssj3pj.repository.UsersRepository;
+import org.example.ssj3pj.repository.YoutubeMetadataRepository;
+import org.example.ssj3pj.services.ES.YoutubeQueryService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,9 +29,41 @@ import java.util.Map;
 public class ContentsService {
 
     private final ElasticsearchClient elasticsearchClient;
-    
+    private final UsersRepository usersRepository;
+    private final YoutubeMetadataRepository youtubeMetadataRepository;
+    private final YoutubeQueryService youtubeQueryService;
+    private final CommentSender commentSender;
+    private final ObjectMapper objectMapper;
+
     @Value("${app.es.indices.youtube:youtubedata}")
     private String youtubeIndex;
+
+    public JsonNode analyzeComments(String videoId, String username) throws IOException {
+        // 1. Find user by username
+        Users user = usersRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        // 2. Find the most recent es_doc_id for the user
+        YoutubeMetadata metadata = youtubeMetadataRepository.findFirstByUserOrderByIndexedAtDesc(user)
+                .orElseThrow(() -> new RuntimeException("Youtube metadata not found for user: " + username));
+        String esDocId = metadata.getEsDocId();
+
+        // 3. Fetch all comments for the specific video from the ES document
+        JsonNode videoComments = youtubeQueryService.findAllCommentsForVideo(esDocId, videoId);
+
+        if (videoComments == null || videoComments.isEmpty()) {
+            log.warn("No comments found for videoId: {} in docId: {}. Nothing to analyze.", videoId, esDocId);
+            return objectMapper.createObjectNode(); // 빈 JSON 리턴
+        }
+
+        // 4. Wrap videoId and comments into youtube node
+        JsonNode youtubeNode = objectMapper.createObjectNode()
+                .put("videoId", videoId)
+                .set("comments", videoComments);
+
+        // 5. AI 서버에 요청 → 응답 JsonNode 반환
+        return commentSender.sendCommentsToAi(youtubeNode);
+    }
 
     /**
      * 비디오 ID로 콘텐츠 상세 정보를 조회합니다.

@@ -35,8 +35,8 @@ public class JobResult {
     @Column(name = "result_key", length = 500, nullable = false, unique = true)
     private String resultKey; // S3 key
 
-    @Column(name = "prompt_text", columnDefinition = "TEXT")
-    private String promptText;
+    @Column(name = "prompt", columnDefinition = "TEXT")
+    private String prompt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

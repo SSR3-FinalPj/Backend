@@ -6,6 +6,8 @@ import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.youtube.YoutubeSummaryDto;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.IOException;
+import java.util.Collections;
 import static org.example.ssj3pj.util.JsonNodeUtils.*;
 
 @Service
@@ -60,7 +64,7 @@ public class YoutubeQueryService {
             List<YoutubeCommentDto> comments = parseComments(src.path("comments"));
 
             // 6. DTO 빌드
-            YoutubeSummaryDto dto = YoutubeSummaryDto.builder()
+            return YoutubeSummaryDto.builder()
                     .videoId(getText(src, "video_id"))
                     .title(getText(src, "title"))
                     .description(getText(src, "description"))
@@ -76,11 +80,6 @@ public class YoutubeQueryService {
                     .videoPlayer(getText(src, "video_player"))
                     .comments(comments)
                     .build();
-
-            if (log.isDebugEnabled()) {
-                log.debug("📦 YouTube DTO READY: {}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dto));
-            }
-            return dto;
 
         } catch (Exception e) {
             throw new RuntimeException("❌ YouTube ES 조회 또는 파싱 실패: " + e.getMessage(), e);
@@ -101,9 +100,6 @@ public class YoutubeQueryService {
         }
     }
 
-    /**
-     * ES 원본 데이터를 Object(배열/객체) 형태로 반환 (실행 중인 동작과 일치)
-     */
     public Object getRawYoutubeByEsDocId(String esDocId) {
         try {
             GetResponse<JsonData> response = elasticsearchClient.get(
@@ -111,8 +107,7 @@ public class YoutubeQueryService {
                     JsonData.class
             );
             if (!response.found()) throw new RuntimeException("❌ ES 문서 없음: " + esDocId);
-            
-            // JSON 객체로 직접 반환 (실행 중인 컴트롤러와 일치)
+
             JsonNode root = objectMapper.readTree(response.source().toJson().toString());
             return objectMapper.treeToValue(root, Object.class);
         } catch (Exception e) {
@@ -120,12 +115,71 @@ public class YoutubeQueryService {
         }
     }
 
-    // 썸네일 파싱 헬퍼 메서드
+    public JsonNode findAllCommentsForVideo(String esDocId, String videoId) throws IOException {
+        log.info("Fetching comments for esDocId: {} and videoId: {}", esDocId, videoId);
+
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return objectMapper.createObjectNode();
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode videosNode = source.path("videos");
+
+        if (!videosNode.isArray()) {
+            log.warn("The 'videos' field is not an array in document id: {}", esDocId);
+            return objectMapper.createObjectNode();
+        }
+
+        for (JsonNode videoNode : videosNode) {
+            if (videoId.equals(videoNode.path("video_id").asText())) {
+                JsonNode commentsNode = videoNode.path("comments");
+                log.info("commentsNode raw: {}", commentsNode.toPrettyString());
+
+                if (commentsNode.isArray()) {
+                    ArrayNode commentsArray = objectMapper.createArrayNode();
+
+                    for (JsonNode commentNode : commentsNode) {
+                        ObjectNode newComment = objectMapper.createObjectNode();
+                        newComment.put("comment_id", commentNode.path("comment_id").asText());
+                        newComment.put("author", commentNode.path("author").asText());
+                        newComment.put("comment", commentNode.path("text").asText()); // ✅ text → comment
+                        newComment.put("like_count", commentNode.path("like_count").asInt());
+                        newComment.put("total_reply_count", commentNode.path("reply_count").asInt());
+                        newComment.put("published_at", commentNode.path("published_at").asText());
+
+                        commentsArray.add(newComment);
+                    }
+
+                    ObjectNode youtubeNode = objectMapper.createObjectNode();
+                    youtubeNode.put("videoId", videoId);
+                    youtubeNode.set("comments", commentsArray);
+
+                    ObjectNode result = objectMapper.createObjectNode();
+                    result.set("youtube", youtubeNode);
+
+                    return result; // ✅ 원하는 JSON 구조 반환
+                }
+            }
+        }
+
+        log.warn("No video found with videoId: {} in document id: {}", videoId, esDocId);
+        return objectMapper.createObjectNode();
+    }
+
+
     private YoutubeThumbnailDto parseThumbnails(JsonNode thumbnailNode) {
         if (thumbnailNode == null || thumbnailNode.isMissingNode()) {
             return null;
         }
-        
+
         return YoutubeThumbnailDto.builder()
                 .defaultThumbnail(parseThumbnailDetail(thumbnailNode.path("default")))
                 .medium(parseThumbnailDetail(thumbnailNode.path("medium")))
@@ -139,7 +193,7 @@ public class YoutubeQueryService {
         if (detailNode == null || detailNode.isMissingNode()) {
             return null;
         }
-        
+
         return YoutubeThumbnailDto.ThumbnailDetailDto.builder()
                 .url(getText(detailNode, "url"))
                 .width(getInt(detailNode, "width"))
@@ -147,14 +201,13 @@ public class YoutubeQueryService {
                 .build();
     }
 
-    // 댓글 파싱 헬퍼 메서드
     private List<YoutubeCommentDto> parseComments(JsonNode commentsNode) {
         List<YoutubeCommentDto> comments = new ArrayList<>();
-        
+
         if (commentsNode == null || !commentsNode.isArray()) {
             return comments;
         }
-        
+
         for (JsonNode commentNode : commentsNode) {
             YoutubeCommentDto comment = YoutubeCommentDto.builder()
                     .commentId(getText(commentNode, "comment_id"))
@@ -168,21 +221,20 @@ public class YoutubeQueryService {
                     .build();
             comments.add(comment);
         }
-        
+
         return comments;
     }
 
-    // 문자열로 된 숫자를 Integer로 변환하는 헬퍼 메서드
     private Integer getIntFromString(JsonNode node, String fieldName) {
         JsonNode fieldNode = node.path(fieldName);
         if (fieldNode.isMissingNode()) {
             return null;
         }
-        
+
         if (fieldNode.isInt()) {
             return fieldNode.asInt();
         }
-        
+
         try {
             return Integer.parseInt(fieldNode.asText());
         } catch (NumberFormatException e) {
