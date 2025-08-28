@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface JobResultRepository extends JpaRepository<JobResult, Long> {
@@ -14,4 +15,13 @@ public interface JobResultRepository extends JpaRepository<JobResult, Long> {
             "JOIN jr.job j " +
             "WHERE j.user.id = :userId")
     List<JobResult> findAllByUserId(Long userId);
+
+    Optional<JobResult> findByIdAndJob_User_Id(Long resultId, Long userId);
+
+    // userId 보안 체크용 (영상 단건 조회)
+    List<JobResult> findAllByJob_User_Id(Long userId);
+
+    // 특정 jobId 에 속한 모든 결과 조회
+    List<JobResult> findAllByJobId(Long jobId);
+
 }

@@ -79,7 +79,7 @@ public class JobService {
         job.setStatus("COMPLETED");
         jobRepository.save(job);
 
-        sseHub.notifyJobCompleted(job.getUser().getId(), resultKey);
+        sseHub.notifyVideoReady(job.getId());
 
         return jobResult;
     }

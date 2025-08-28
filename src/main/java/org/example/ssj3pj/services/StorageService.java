@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.model.GetCallerIdentityResponse;
 
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Locale;
@@ -78,14 +79,21 @@ public class StorageService {
         return presigner.presignGetObject(pre).url().toString();
     }
 
-    /** 이미지 키 생성 유틸 */
-    public String newImageKey(String ext) {
-        LocalDate d = LocalDate.now();
-        return String.format(
-                "images/%04d/%02d/%02d/%s.%s",
-                d.getYear(), d.getMonthValue(), d.getDayOfMonth(),
-                UUID.randomUUID(), ext.toLowerCase(Locale.ROOT)
-        );
+    public String presignDownload(String key) {
+        var get = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .responseContentType("application/octet-stream")
+                .responseContentDisposition("attachment; filename=\""
+                        + Paths.get(key).getFileName().toString() + "\"")
+                .build();
+
+        var pre = GetObjectPresignRequest.builder()
+                .getObjectRequest(get)
+                .signatureDuration(Duration.ofMinutes(ttlMinutes))
+                .build();
+
+        return presigner.presignGetObject(pre).url().toString();
     }
 
     private String safe(String s) {
