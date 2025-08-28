@@ -1,12 +1,12 @@
-package org.example.ssj3pj.controller;
+package org.example.ssj3pj.controller.reddit;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
-import org.example.ssj3pj.services.RedditLinkStatusService;
-import org.example.ssj3pj.services.RedditOAuthService;
+import org.example.ssj3pj.services.Reddit.RedditLinkStatusService;
+import org.example.ssj3pj.services.Reddit.RedditOAuthService;
 import org.example.ssj3pj.services.oauth.OAuthStateService;
 import org.example.ssj3pj.dto.reddit.RedditLinkSimpleDto;
 import org.springframework.beans.factory.annotation.Value;
@@ -83,8 +83,7 @@ public class RedditAuthController {
 
         redditOAuthService.handleOAuthCallback(code, user);
 
-        // ✅ 현재 탭으로 열린 경우 돌아갈 프런트 URL (환경에 맞게 바꿔주세요)
-        String appRedirect = "http://localhost:5173";
+        String appRedirect = "http://localhost:5173"; //수정 예정
 
         String html = """
     <!doctype html>
