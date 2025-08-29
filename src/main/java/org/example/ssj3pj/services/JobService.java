@@ -24,8 +24,6 @@ public class JobService {
     private final JobResultRepository jobResultRepository;
     private final UsersRepository usersRepository;
     private final SseHub sseHub;
-
-    // ✅ 새로 주입
     private final VideoRequestService videoRequestService;
     private final DynamicVideoScheduler dynamicVideoScheduler;
 

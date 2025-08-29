@@ -26,7 +26,6 @@ public class DynamicVideoScheduler {
     private final VideoPromptSender sender;
     private final VideoRequestService videoRequestService;
 
-    // 🔄 jobId별 스케줄 관리
     private final Map<Long, ScheduledFuture<?>> jobTasks = new ConcurrentHashMap<>();
 
     /**
@@ -39,18 +38,18 @@ public class DynamicVideoScheduler {
         Runnable task = () -> {
             UserRequestData data = videoRequestService.getJobRequest(jobId);
             if (data == null) {
-                log.warn("[SCHED] No request data for job {}", jobId);
+                log.warn("[SCHED] No request data in Redis for job {}", jobId);
                 return;
             }
 
-            // 매 실행마다 최신 환경 데이터 조회
+            // 매 실행마다 최신 환경 데이터 가져오기
             EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
             if (summary == null) {
                 log.warn("[SCHED] No ES data for locationCode={} job={}", data.getLocationCode(), jobId);
                 return;
             }
 
-            // ✅ FastAPI 호출 시 userId 전달
+            // FastAPI 전송
             sender.sendEnvironmentDataToFastAPI(summary, data.getUserId(), data.getImageKey());
         };
 
@@ -69,6 +68,8 @@ public class DynamicVideoScheduler {
         // 18시에 자동 종료 예약
         scheduleStopAt18(jobId);
     }
+
+
 
     /**
      * 특정 jobId의 스케줄링 중단
