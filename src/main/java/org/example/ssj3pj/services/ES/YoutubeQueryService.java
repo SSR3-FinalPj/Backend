@@ -6,15 +6,22 @@ import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.youtube.YoutubeSummaryDto;
-import org.example.ssj3pj.dto.youtube.YoutubeCommentDto;
-import org.example.ssj3pj.dto.youtube.YoutubeThumbnailDto;
+import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
+import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;
+import org.example.ssj3pj.dto.dashboard.DashboardTotalStats;
+import org.example.ssj3pj.dto.youtube.*;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.IOException;
+import java.util.Collections;
 import static org.example.ssj3pj.util.JsonNodeUtils.*;
 
 @Service
@@ -60,7 +67,7 @@ public class YoutubeQueryService {
             List<YoutubeCommentDto> comments = parseComments(src.path("comments"));
 
             // 6. DTO 빌드
-            YoutubeSummaryDto dto = YoutubeSummaryDto.builder()
+            return YoutubeSummaryDto.builder()
                     .videoId(getText(src, "video_id"))
                     .title(getText(src, "title"))
                     .description(getText(src, "description"))
@@ -76,11 +83,6 @@ public class YoutubeQueryService {
                     .videoPlayer(getText(src, "video_player"))
                     .comments(comments)
                     .build();
-
-            if (log.isDebugEnabled()) {
-                log.debug("📦 YouTube DTO READY: {}", objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dto));
-            }
-            return dto;
 
         } catch (Exception e) {
             throw new RuntimeException("❌ YouTube ES 조회 또는 파싱 실패: " + e.getMessage(), e);
@@ -101,9 +103,6 @@ public class YoutubeQueryService {
         }
     }
 
-    /**
-     * ES 원본 데이터를 Object(배열/객체) 형태로 반환 (실행 중인 동작과 일치)
-     */
     public Object getRawYoutubeByEsDocId(String esDocId) {
         try {
             GetResponse<JsonData> response = elasticsearchClient.get(
@@ -111,21 +110,243 @@ public class YoutubeQueryService {
                     JsonData.class
             );
             if (!response.found()) throw new RuntimeException("❌ ES 문서 없음: " + esDocId);
-            
-            // JSON 객체로 직접 반환 (실행 중인 컴트롤러와 일치)
+
             JsonNode root = objectMapper.readTree(response.source().toJson().toString());
             return objectMapper.treeToValue(root, Object.class);
         } catch (Exception e) {
             throw new RuntimeException("❌ YouTube ES Object 조회 실패: " + e.getMessage(), e);
         }
     }
+    public VideoListDto findAllVideoForChannel(String esDocId, String channelId, String pageToken) throws IOException{
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
 
-    // 썸네일 파싱 헬퍼 메서드
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode videosNode = source.path("videos");
+        List<VideoItemDto> videoItemList = new ArrayList<>();
+        for (JsonNode videoNode : videosNode) {
+            VideoStatisticsDto videoStatistics = VideoStatisticsDto.builder()
+                    .commentCount(videoNode.path("comment_count").asLong())
+                    .likeCount(videoNode.path("like_count").asLong())
+                    .viewCount(videoNode.path("view_count").asLong())
+                    .build();
+            VideoItemDto videoItem = VideoItemDto.builder()
+                    .videoId(videoNode.path("video_id").asText())
+                    .title(videoNode.path("title").asText())
+                    .url("https://www.youtube.com/watch?v=" + videoNode.path("video_id").asText())
+                    .thumbnail(videoNode.path("thumbnails").path("standard").path("url").asText())
+                    .publishedAt(videoNode.path("upload_date").asText())
+                    .statistics(videoStatistics)
+                    .build();
+            videoItemList.add(videoItem);
+        }
+        return VideoListDto.builder()
+                .channelId(channelId)
+                .videos(videoItemList)
+                .nextPageToken(pageToken)
+                .build();
+    }
+    public ChannelInfoDto findChannel(String esDocId) throws IOException{
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        String channelId = source.path("channel_id").asText();
+        String channelTitle = source.path("channel_title").asText();
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+        return ChannelInfoDto.builder()
+                .channelId(channelId)
+                .channelTitle(channelTitle)
+                .build();
+    }
+    public DashboardDayStats findDayStatForChannel(String esDocId, LocalDate date) throws IOException {
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+
+        // source를 JsonNode로 파싱
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode channelStatsNode = source.path("channel_stats");
+        JsonNode videosNode = source.path("videos");
+        long view_count = 0;
+        long comment_count = 0;
+        long like_count = 0;
+        for (JsonNode videoNode : videosNode) {
+            comment_count += videoNode.path("comment_count").asLong(0);
+            like_count += videoNode.path("like_count").asLong(0);
+            view_count += videoNode.path("view_count").asLong(0);
+        }
+        // DashboardDayStats 객체 생성
+        return DashboardDayStats.builder()
+                .date(date)  // Service에서 받은 날짜 문자열
+                .viewCount(view_count)
+                .subscriberCount(channelStatsNode.path("subscriber_count").asLong(0))
+                .commentCount(comment_count)
+                .videoCount(channelStatsNode.path("video_count").asLong(0))
+                .likeCount(like_count)
+                .build();
+    }
+
+    public YoutubeContentDetailDto findAllDetailForVideo(String esDocId, String videoId) throws IOException {
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode videosNode = source.path("videos");
+
+        for (JsonNode videoNode : videosNode) {
+            if (videoId.equals(videoNode.path("video_id").asText())) {
+                log.info("videoNode raw: {}", videoNode.toPrettyString());
+
+                // High quality 썸네일이 있으면 사용, 없으면 기본값
+                String thumbnailUrl = null;
+                JsonNode thumbnails = videoNode.path("thumbnails");
+                if (thumbnails.has("high")) {
+                    thumbnailUrl = thumbnails.path("high").path("url").asText(null);
+                } else if (thumbnails.has("default")) {
+                    thumbnailUrl = thumbnails.path("default").path("url").asText(null);
+                }
+
+                // DTO 빌드
+                YoutubeContentDetailDto dto = YoutubeContentDetailDto.builder()
+                        .videoId(videoNode.path("video_id").asText())
+                        .uploadDate(videoNode.path("upload_date").asText(null))
+                        .thumbnailUrl(thumbnailUrl)
+                        .title(videoNode.path("title").asText(null))
+                        .viewCount(videoNode.path("view_count").asInt(0))
+                        .commentCount(videoNode.path("comment_count").asInt(0))
+                        .likeCount(videoNode.path("like_count").asInt(0))
+                        .build();
+
+                return dto;
+            }
+        }
+
+        return null;
+    }
+    public DashboardTotalStats findAllStat(String esDocId) throws IOException{
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode videosNode = source.path("videos");
+        long view_count = 0;
+        long comment_count = 0;
+        long like_count = 0;
+        for (JsonNode videoNode : videosNode) {
+            comment_count += videoNode.path("comment_count").asLong(0);
+            like_count += videoNode.path("like_count").asLong(0);
+            view_count += videoNode.path("view_count").asLong(0);
+        }
+        return DashboardTotalStats.builder()
+                .totalVideoCount(source.path("channel_stats").path("video_count").asLong())
+                .totalLikeCount(like_count)
+                .totalViewCount(view_count)
+                .totalCommentCount(comment_count)
+                .build();
+    }
+
+    public JsonNode findAllCommentsForVideo(String esDocId, String videoId) throws IOException {
+        log.info("Fetching comments for esDocId: {} and videoId: {}", esDocId, videoId);
+
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return objectMapper.createObjectNode();
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode videosNode = source.path("videos");
+
+        if (!videosNode.isArray()) {
+            log.warn("The 'videos' field is not an array in document id: {}", esDocId);
+            return objectMapper.createObjectNode();
+        }
+
+        for (JsonNode videoNode : videosNode) {
+            if (videoId.equals(videoNode.path("video_id").asText())) {
+                JsonNode commentsNode = videoNode.path("comments");
+                log.info("commentsNode raw: {}", commentsNode.toPrettyString());
+
+                if (commentsNode.isArray()) {
+                    ArrayNode commentsArray = objectMapper.createArrayNode();
+
+                    for (JsonNode commentNode : commentsNode) {
+                        ObjectNode newComment = objectMapper.createObjectNode();
+                        newComment.put("comment_id", commentNode.path("comment_id").asText());
+                        newComment.put("author", commentNode.path("author").asText());
+                        newComment.put("comment", commentNode.path("text").asText()); // ✅ text → comment
+                        newComment.put("like_count", commentNode.path("like_count").asInt());
+                        newComment.put("total_reply_count", commentNode.path("reply_count").asInt());
+                        newComment.put("published_at", commentNode.path("published_at").asText());
+
+                        commentsArray.add(newComment);
+                    }
+
+                    ObjectNode youtubeNode = objectMapper.createObjectNode();
+                    youtubeNode.put("videoId", videoId);
+                    youtubeNode.set("comments", commentsArray);
+
+                    ObjectNode result = objectMapper.createObjectNode();
+                    result.set("youtube", youtubeNode);
+
+                    return result; // ✅ 원하는 JSON 구조 반환
+                }
+            }
+        }
+
+        log.warn("No video found with videoId: {} in document id: {}", videoId, esDocId);
+        return objectMapper.createObjectNode();
+    }
+
+
     private YoutubeThumbnailDto parseThumbnails(JsonNode thumbnailNode) {
         if (thumbnailNode == null || thumbnailNode.isMissingNode()) {
             return null;
         }
-        
+
         return YoutubeThumbnailDto.builder()
                 .defaultThumbnail(parseThumbnailDetail(thumbnailNode.path("default")))
                 .medium(parseThumbnailDetail(thumbnailNode.path("medium")))
@@ -139,7 +360,7 @@ public class YoutubeQueryService {
         if (detailNode == null || detailNode.isMissingNode()) {
             return null;
         }
-        
+
         return YoutubeThumbnailDto.ThumbnailDetailDto.builder()
                 .url(getText(detailNode, "url"))
                 .width(getInt(detailNode, "width"))
@@ -147,14 +368,13 @@ public class YoutubeQueryService {
                 .build();
     }
 
-    // 댓글 파싱 헬퍼 메서드
     private List<YoutubeCommentDto> parseComments(JsonNode commentsNode) {
         List<YoutubeCommentDto> comments = new ArrayList<>();
-        
+
         if (commentsNode == null || !commentsNode.isArray()) {
             return comments;
         }
-        
+
         for (JsonNode commentNode : commentsNode) {
             YoutubeCommentDto comment = YoutubeCommentDto.builder()
                     .commentId(getText(commentNode, "comment_id"))
@@ -168,21 +388,20 @@ public class YoutubeQueryService {
                     .build();
             comments.add(comment);
         }
-        
+
         return comments;
     }
 
-    // 문자열로 된 숫자를 Integer로 변환하는 헬퍼 메서드
     private Integer getIntFromString(JsonNode node, String fieldName) {
         JsonNode fieldNode = node.path(fieldName);
         if (fieldNode.isMissingNode()) {
             return null;
         }
-        
+
         if (fieldNode.isInt()) {
             return fieldNode.asInt();
         }
-        
+
         try {
             return Integer.parseInt(fieldNode.asText());
         } catch (NumberFormatException e) {

@@ -14,6 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 /**
  * YouTube 채널 관련 API 컨트롤러
  * - 채널 메타 정보 조회
@@ -35,24 +37,20 @@ public class    YouTubeChannelController {
      * 현재 로그인된 사용자의 대표 YouTube 채널 ID 및 채널 메타 정보를 조회
      */
     @GetMapping("/channelId")
-    public ResponseEntity<ChannelInfoDto> getChannelId(
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ChannelInfoDto> getChannelId(Principal principal) {
         try {
-            log.info("채널 정보 조회 요청: username={}", userDetails.getUsername());
-            
+            String username = principal.getName();
             // 사용자 조회
-            Users user = getUserFromDetails(userDetails);
-            
+            Users user = usersRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
             // 채널 정보 조회
-            ChannelInfoDto channelInfo = youTubeChannelService.getMyChannelInfo(user.getId());
+            ChannelInfoDto channelInfo = youTubeChannelService.getMyChannelInfo(user);
             
             log.info("채널 정보 조회 성공: userId={}, channelId={}", 
                     user.getId(), channelInfo.getChannelId());
             
             return ResponseEntity.ok(channelInfo);
-            
         } catch (RuntimeException e) {
-            log.error("채널 정보 조회 실패: username={}", userDetails.getUsername(), e);
             
             // 구체적인 에러에 따라 HTTP 상태 코드 결정
             if (e.getMessage().contains("연동된 YouTube 채널이 없습니다")) {
@@ -63,7 +61,6 @@ public class    YouTubeChannelController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
         } catch (Exception e) {
-            log.error("채널 정보 조회 중 예상치 못한 오류: username={}", userDetails.getUsername(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -78,11 +75,11 @@ public class    YouTubeChannelController {
     public ResponseEntity<VideoListDto> getChannelVideos(
             @PathVariable String channelId,
             @RequestParam(required = false) String pageToken,
-            @RequestParam(defaultValue = "20") Integer maxResults) {
+            @RequestParam(defaultValue = "20") Integer maxResults,
+            Principal principal) {
         try {
             log.info("채널 비디오 목록 조회 요청: channelId={}, pageToken={}, maxResults={}", 
                     channelId, pageToken, maxResults);
-            
             // 입력 값 검증
             if (channelId == null || channelId.trim().isEmpty()) {
                 log.warn("잘못된 채널 ID: {}", channelId);
@@ -92,9 +89,15 @@ public class    YouTubeChannelController {
             if (maxResults <= 0 || maxResults > 50) {
                 maxResults = 20; // 기본값으로 설정
             }
-            
+
+            String username = principal.getName();
+            // 사용자 조회
+            Users user = usersRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+
             // 비디오 목록 조회 (ES 기반)
-            VideoListDto videoList = youTubeChannelService.getChannelVideos(channelId, pageToken, maxResults);
+            VideoListDto videoList = youTubeChannelService.getChannelVideos(user, channelId, pageToken, maxResults);
             
             log.info("채널 비디오 목록 조회 성공: channelId={}, 비디오 수={}", 
                     channelId, videoList.getVideos().size());
@@ -122,38 +125,42 @@ public class    YouTubeChannelController {
      * 
      * 특정 영상의 상세 정보를 조회
      */
-    @GetMapping("/video/{videoId}")
-    public ResponseEntity<VideoDetailDto> getVideoDetail(@PathVariable String videoId) {
-        try {
-            log.info("단일 영상 상세 조회 요청: videoId={}", videoId);
-            
-            // 입력 값 검증
-            if (videoId == null || videoId.trim().isEmpty()) {
-                log.warn("잘못된 비디오 ID: {}", videoId);
-                return ResponseEntity.badRequest().build();
-            }
-            
-            // 영상 상세 정보 조회 (ES 기반)
-            VideoDetailDto videoDetail = youTubeChannelService.getVideoDetail(videoId.trim());
-            
-            log.info("단일 영상 상세 조회 성공: videoId={}, title={}", videoId, videoDetail.getTitle());
-            
-            return ResponseEntity.ok(videoDetail);
-            
-        } catch (RuntimeException e) {
-            log.error("단일 영상 상세 조회 실패: videoId={}", videoId, e);
-            
-            // 구체적인 에러에 따라 HTTP 상태 코드 결정
-            if (e.getMessage().contains("찾을 수 없습니다")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-            } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-            }
-        } catch (Exception e) {
-            log.error("단일 영상 상세 조회 중 예상치 못한 오류: videoId={}", videoId, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
+//    @GetMapping("/video/{videoId}")
+//    public ResponseEntity<VideoDetailDto> getVideoDetail(@PathVariable String videoId, Principal principal) {
+//        try {
+//            log.info("단일 영상 상세 조회 요청: videoId={}", videoId);
+//
+//            // 입력 값 검증
+//            if (videoId == null || videoId.trim().isEmpty()) {
+//                log.warn("잘못된 비디오 ID: {}", videoId);
+//                return ResponseEntity.badRequest().build();
+//            }
+//            String username = principal.getName();
+//            // 사용자 조회
+//            Users user = usersRepository.findByUsername(username)
+//                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
+//
+//            // 영상 상세 정보 조회 (ES 기반)
+//            VideoDetailDto videoDetail = youTubeChannelService.getVideoDetail(user, videoId.trim());
+//
+//            log.info("단일 영상 상세 조회 성공: videoId={}, title={}", videoId, videoDetail.getTitle());
+//
+//            return ResponseEntity.ok(videoDetail);
+//
+//        } catch (RuntimeException e) {
+//            log.error("단일 영상 상세 조회 실패: videoId={}", videoId, e);
+//
+//            // 구체적인 에러에 따라 HTTP 상태 코드 결정
+//            if (e.getMessage().contains("찾을 수 없습니다")) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+//            } else {
+//                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+//            }
+//        } catch (Exception e) {
+//            log.error("단일 영상 상세 조회 중 예상치 못한 오류: videoId={}", videoId, e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+//        }
+//    }
 
     /**
      * UserDetails에서 Users 엔티티 추출

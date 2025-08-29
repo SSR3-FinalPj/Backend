@@ -8,12 +8,17 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
 import org.example.ssj3pj.dto.youtube.ChannelInfoDto;
 import org.example.ssj3pj.dto.youtube.PageInfoDto;
 import org.example.ssj3pj.dto.youtube.VideoDetailDto;
 import org.example.ssj3pj.dto.youtube.VideoItemDto;
 import org.example.ssj3pj.dto.youtube.VideoListDto;
 import org.example.ssj3pj.dto.youtube.VideoStatisticsDto;
+import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.entity.YoutubeMetadata;
+import org.example.ssj3pj.repository.YoutubeMetadataRepository;
+import org.example.ssj3pj.services.ES.YoutubeQueryService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +37,8 @@ import java.util.Map;
 public class YouTubeChannelService {
 
     private final ElasticsearchClient elasticsearchClient;
+    private final YoutubeQueryService youtubeQueryService;
+    private final YoutubeMetadataRepository youtubeMetadataRepository;
 
     @Value("${app.es.indices.youtube:youtubedata}")
     private String youtubeIndex;
@@ -39,156 +46,34 @@ public class YouTubeChannelService {
     /**
      * 사용자의 YouTube 채널 ID 조회 (ES 기반)
      */
-    public ChannelInfoDto getMyChannelInfo(Long userId) {
+    public ChannelInfoDto getMyChannelInfo(Users user) {
         try {
-            log.info("사용자 채널 정보 조회 시작 (ES 기반): userId={}", userId);
-            log.info("사용 중인 Elasticsearch Index: {}", youtubeIndex);
-
-            // processed_for_user 가 numeric 매핑인 케이스에 맞춰 숫자로 질의
-            Query termQuery = Query.of(q -> q
-                    .term(t -> t
-                            .field("processed_for_user")
-                            .value(userId)   // ← 숫자 그대로
-                    )
-            );
-
-            SearchRequest searchRequest = SearchRequest.of(s -> s
-                    .index(youtubeIndex)
-                    .query(termQuery)
-                    .size(1)
-                    .source(src -> src.filter(f -> f.includes("channel_id")))
-            );
-
-            SearchResponse<Map> searchResponse = elasticsearchClient.search(searchRequest, Map.class);
-
-            if (searchResponse.hits().hits().isEmpty()) {
-                throw new RuntimeException("해당 사용자의 YouTube 채널 데이터가 없습니다. userId: " + userId);
-            }
-
-            Hit<Map> firstHit = searchResponse.hits().hits().get(0);
-            Map<String, Object> source = firstHit.source();
-            if (source == null) {
-                throw new RuntimeException("ES 검색 결과에 _source 데이터가 없습니다.");
-            }
-
-            String channelId = (String) source.get("channel_id");
-            if (channelId == null || channelId.isEmpty()) {
-                throw new RuntimeException("ES 데이터에 channel_id가 없습니다.");
-            }
-
-            log.info("채널 정보 조회 성공 (ES): userId={}, channelId={}", userId, channelId);
-
-            return ChannelInfoDto.builder()
-                    .channelId(channelId)
-                    .channelTitle("")
-                    .build();
+            YoutubeMetadata metadata = youtubeMetadataRepository.findFirstByUserOrderByIndexedAtDesc(user)
+                    .orElseThrow(() -> new RuntimeException("Youtube metadata not found for user: " + user));
+            String esDocId = metadata.getEsDocId();
+            ChannelInfoDto channelInfo = youtubeQueryService.findChannel(esDocId);
+            return channelInfo;
 
         } catch (Exception e) {
-            log.error("채널 정보 조회 실패 (ES): userId={}", userId, e);
+            log.error("채널 정보 조회 실패 (ES): user={}", user, e);
             throw new RuntimeException("채널 정보 조회 실패: " + e.getMessage(), e);
         }
     }
 
-    public VideoListDto getChannelVideos(String channelId) {
-        return getChannelVideos(channelId, null, 20);
-    }
 
     /**
      * 특정 채널의 비디오 목록 조회 (ES 기반, video_id별 최신 1건만)
      */
-    public VideoListDto getChannelVideos(String channelId, String pageToken, Integer maxResults) {
+    public VideoListDto getChannelVideos(Users user, String channelId, String pageToken, Integer maxResults) {
         try {
             log.info("채널 비디오 목록(중복 제거/최신 1개) 조회 시작: channelId={}", channelId);
-
-            int size = (maxResults != null ? maxResults : 20);
-
-            // 채널 필터
-            Query termQuery = Query.of(q -> q
-                    .term(t -> t.field("channel_id.keyword").value(channelId))
-            );
-
-            // video_id 그룹당 최신 1개만 선택 (collapse) + 최신 정렬
-            SearchRequest searchRequest = SearchRequest.of(s -> s
-                    .index(youtubeIndex)
-                    .query(termQuery)
-                    .size(size)
-                    .sort(st -> st.field(f -> f.field("upload_date").order(SortOrder.Desc)))
-                    .sort(st -> st.field(f -> f.field("@timestamp").order(SortOrder.Desc)))
-                    .collapse(c -> c.field("video_id.keyword"))
-                    .source(src -> src.filter(f -> f.includes(
-                            "video_id", "title", "upload_date",
-                            "view_count", "like_count", "comment_count",
-                            "thumbnails", "thumbnail_url"   // ← 단일 필드도 함께
-                    )))
-            );
-
-            SearchResponse<Map> searchResponse = elasticsearchClient.search(searchRequest, Map.class);
-
-            List<VideoItemDto> videoItems = new ArrayList<>();
-            for (Hit<Map> hit : searchResponse.hits().hits()) {
-                Map<String, Object> src = hit.source();
-                if (src == null) continue;
-
-                String videoId = str(src.get("video_id"));
-                if (videoId == null || videoId.isEmpty()) continue;
-
-                String title = str(src.get("title"));
-                String publishedAt = str(src.get("upload_date"));
-
-                Long viewCount = asLong(src.get("view_count"));
-                Long likeCount = asLong(src.get("like_count"));
-                Long commentCount = asLong(src.get("comment_count"));
-
-                // 목록은 sddefault 정책
-                String thumbnailUrl = extractSdThumbnailUrl(videoId, src);
-
-                VideoStatisticsDto statistics = VideoStatisticsDto.builder()
-                        .viewCount(viewCount)
-                        .likeCount(likeCount)
-                        .commentCount(commentCount)
-                        .build();
-
-                videoItems.add(
-                        VideoItemDto.builder()
-                                .videoId(videoId)
-                                .title(title != null ? title : "")
-                                .publishedAt(publishedAt != null ? publishedAt : "")
-                                .thumbnail(thumbnailUrl)
-                                .url("https://www.youtube.com/watch?v=" + videoId)
-                                .statistics(statistics)
-                                .build()
-                );
-            }
-
-            log.info("중복 제거 결과: channelId={}, 반환 영상 수={}", channelId, videoItems.size());
-
-            // 고유(video_id) 총 개수(근사)
-            SearchRequest countReq = SearchRequest.of(s -> s
-                    .index(youtubeIndex)
-                    .query(termQuery)
-                    .size(0)
-                    .aggregations("unique_videos", a -> a.cardinality(c -> c.field("video_id.keyword")))
-            );
-            SearchResponse<Map> countRes = elasticsearchClient.search(countReq, Map.class);
-
-            int totalUnique = 0;
-            if (countRes.aggregations() != null
-                    && countRes.aggregations().get("unique_videos") != null
-                    && countRes.aggregations().get("unique_videos").isCardinality()) {
-                totalUnique = Math.toIntExact(countRes.aggregations().get("unique_videos").cardinality().value());
-            }
-
-            PageInfoDto pageInfo = PageInfoDto.builder()
-                    .resultsPerPage(videoItems.size())
-                    .totalResults(totalUnique)
-                    .build();
-
-            return VideoListDto.builder()
-                    .channelId(channelId)
-                    .videos(videoItems)
-                    .nextPageToken(null) // 필요시 search_after로 확장
-                    .pageInfo(pageInfo)
-                    .build();
+            YoutubeMetadata metadata = youtubeMetadataRepository
+                    .findFirstByUserAndChannelIdOrderByIndexedAtDesc(user, channelId)
+                    .orElseThrow(() -> new RuntimeException(
+                            "Youtube metadata not found for user: " + user.getUsername() + ", channelId: " + channelId));
+            String esDocId = metadata.getEsDocId();
+            VideoListDto videoList = youtubeQueryService.findAllVideoForChannel(esDocId, channelId, pageToken);
+            return videoList;
 
         } catch (Exception e) {
             log.error("채널 비디오 목록 조회 실패(중복 제거): channelId={}", channelId, e);
@@ -199,7 +84,7 @@ public class YouTubeChannelService {
     /**
      * 비디오 ID로 단일 영상 상세 정보 조회 (ES 기반, 최신 스냅샷 1건)
      */
-    public VideoDetailDto getVideoDetail(String videoId) {
+    public VideoDetailDto getVideoDetail(Users user, String videoId) {
         try {
             log.info("단일 영상 상세 정보 조회 시작 (ES 기반): videoId={}", videoId);
 

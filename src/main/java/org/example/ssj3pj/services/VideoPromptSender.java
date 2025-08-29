@@ -47,6 +47,7 @@ public class VideoPromptSender {
                 .youtubeData(Map.of()) // Empty map as per schema
                 .redditData(Map.of())  // Empty map as per schema
                 .userData(Map.of())    // Empty map as per schema
+                .purpose("youtube")
                 .build();
         log.info("Build END");
         String url = bridgeBaseUrl + "/api/generate-video"; // Correct endpoint
