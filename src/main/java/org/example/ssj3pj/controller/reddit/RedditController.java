@@ -1,4 +1,4 @@
-package org.example.ssj3pj.controller;
+package org.example.ssj3pj.controller.reddit;
 
 import lombok.RequiredArgsConstructor;
 import org.example.ssj3pj.dto.reddit.RedditSummaryDto;

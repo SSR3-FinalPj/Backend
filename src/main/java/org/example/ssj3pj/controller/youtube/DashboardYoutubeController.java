@@ -1,5 +1,6 @@
 package org.example.ssj3pj.controller.youtube;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
 import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;
@@ -26,7 +27,24 @@ public class DashboardYoutubeController {
     private final DashboardYoutubeService svc;
     private final JwtUtils jwtUtils;
 
+    // ① 단일 날짜
+    @Tag(name = "dashboard", description = "대쉬보드")
+    @GetMapping
+    public ResponseEntity<DashboardDayStats> daily(
+            @RequestParam String date,
+            @RequestParam(required = false) String region,
+            @RequestParam(name = "channel_id", required = false) String channelId
+    ) throws IOException {
+        try {
+            LocalDate d = LocalDate.parse(date);
+            return ResponseEntity.ok(svc.dailyStats(d, region, channelId));
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // ② 기간(일별 배열)
+    @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/range")
     public ResponseEntity<DashboardRangeStats> daily(
             @RequestParam String startDate,
@@ -57,6 +75,7 @@ public class DashboardYoutubeController {
     }
 
     // ③ 전체 누적
+    @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/total")
     public DashboardTotalStats total(
             HttpServletRequest request,
