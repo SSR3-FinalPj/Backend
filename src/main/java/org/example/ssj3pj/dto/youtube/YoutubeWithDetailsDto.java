@@ -1,3 +1,4 @@
+/*
 package org.example.ssj3pj.dto.youtube;
 
 import lombok.*;
@@ -64,3 +65,4 @@ public class YoutubeWithDetailsDto {
         return dto;
     }
 }
+*/
