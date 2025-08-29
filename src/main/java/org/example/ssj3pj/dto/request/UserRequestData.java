@@ -12,4 +12,6 @@ public class UserRequestData {
     private Long userId;
     private String imageKey;
     private String locationCode;
+    private String prompttext;
+    private boolean isClient; //shutdown 대신입니다.
 }

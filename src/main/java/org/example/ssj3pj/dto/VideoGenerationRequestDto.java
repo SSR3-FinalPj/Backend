@@ -19,15 +19,12 @@ public class VideoGenerationRequestDto {
     @JsonProperty("weather")
     private EnvironmentSummaryDto weatherData; // This will contain the ES summary
 
-    // These might be empty objects, include them if FastAPI expects them explicitly
-    @JsonProperty("youtube")
-    private Map<String, Object> youtubeData;
-
-    @JsonProperty("reddit")
-    private Map<String, Object> redditData;
-
     @JsonProperty("user")
     private Map<String, Object> userData;
 
     private String purpose;
+
+    private boolean isClient;
+
+    private String promptText;
 }

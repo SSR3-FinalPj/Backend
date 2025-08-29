@@ -9,7 +9,7 @@ import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.google.GoogleLinkStatusService;
 import org.example.ssj3pj.services.google.GoogleOAuthService;
 // 변경된 서비스 경로로 import 교체
-import org.example.ssj3pj.services.oauth.OAuthStateService;
+import org.example.ssj3pj.services.OAuthStateService;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;

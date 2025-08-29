@@ -1,4 +1,4 @@
-package org.example.ssj3pj.services.oauth;
+package org.example.ssj3pj.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

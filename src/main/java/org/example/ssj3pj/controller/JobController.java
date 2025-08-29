@@ -28,10 +28,10 @@ public class JobController {
     private final JwtUtils jwtUtils;
 
     // Request DTOs
-    public record CreateJobRequest(@NotBlank String key, @NotBlank String locationCode) {}
+    public record CreateJobRequest(@NotBlank String key, @NotBlank String locationCode, String prompt_text) {}
 
     // Response DTOs
-    public record CreateJobResponse(Long jobId, String status, String sourceImageKey) {}
+    public record CreateJobResponse(Long jobId, String status, String sourceImageKey, String promptText) {}
 
     @PostMapping(path = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateJobResponse> createJob(@RequestBody CreateJobRequest req, HttpServletRequest request) {
@@ -43,9 +43,9 @@ public class JobController {
         try {
             storage.head(req.key());
 
-            Job job = jobService.createJobAndProcess(pureKey, req.locationCode(), "video", userName);
+            Job job = jobService.createJobAndProcess(pureKey, req.locationCode(), "video", userName, req.prompt_text());
 
-            CreateJobResponse response = new CreateJobResponse(job.getId(), job.getStatus(), job.getSourceImageKey());
+            CreateJobResponse response = new CreateJobResponse(job.getId(), job.getStatus(), job.getSourceImageKey(),job.getPromptText());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (NoSuchKeyException e) {

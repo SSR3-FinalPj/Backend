@@ -7,7 +7,7 @@ import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.Reddit.RedditLinkStatusService;
 import org.example.ssj3pj.services.Reddit.RedditOAuthService;
-import org.example.ssj3pj.services.oauth.OAuthStateService;
+import org.example.ssj3pj.services.OAuthStateService;
 import org.example.ssj3pj.dto.reddit.RedditLinkSimpleDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
