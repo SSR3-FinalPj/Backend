@@ -36,7 +36,7 @@ public class GoogleTokenRefresher {
     // 레딧 토큰 갱신
     redditTokenRepo.findExpiringSoon(threshold).forEach(t -> {
       try {
-        redditTokenGuard.getValidAccessToken(t.getUser());
+        redditTokenGuard.getValidAccessToken(t.getUser().getId());
       } catch (Exception e) {
         System.out.println("[reddit-token-refresh] failed userId=" + t.getUser().getId() + " : " + e.getMessage());
       }
