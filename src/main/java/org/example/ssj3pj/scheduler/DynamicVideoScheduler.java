@@ -1,5 +1,4 @@
 package org.example.ssj3pj.scheduler;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
@@ -10,7 +9,10 @@ import org.example.ssj3pj.services.VideoPromptSender;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
-import java.time.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,45 +33,55 @@ public class DynamicVideoScheduler {
     /**
      * 요청 들어왔을 때 스케줄링 시작 (기존 스케줄 있으면 중단하고 새로 시작)
      */
-    public void startJobSchedule(Long jobId, Long userId) {
-        // 기존 스케줄 있으면 중단
+    public void startJobSchedule(Long jobId) {
         stopJobSchedule(jobId);
 
-        Runnable task = () -> {
-            UserRequestData data = videoRequestService.getJobRequest(jobId);
-            if (data == null) {
-                log.warn("[SCHED] No request data in Redis for job {}", jobId);
-                return;
-            }
+        // ✅ 즉시 실행 (클라이언트 요청)
+        runTask(jobId, true);
 
-            // 매 실행마다 최신 환경 데이터 가져오기
-            EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
-            if (summary == null) {
-                log.warn("[SCHED] No ES data for locationCode={} job={}", data.getLocationCode(), jobId);
-                return;
-            }
+        // ✅ 1시간마다 반복 실행 (스케줄러 실행)
+        Runnable scheduledTask = () -> runTask(jobId, false);
 
-            // FastAPI 전송
-            sender.sendEnvironmentDataToFastAPI(summary, data.getUserId(), data.getImageKey());
-        };
-
-        // 즉시 실행
-        task.run();
-
-        // 1시간마다 반복 실행
         ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(
-                task,
-                Date.from(Instant.now().plusSeconds(3600)), // 1시간 뒤부터
+                scheduledTask,
+                Date.from(Instant.now().plusSeconds(3600)),
                 Duration.ofHours(1).toMillis()
         );
 
         jobTasks.put(jobId, future);
 
-        // 18시에 자동 종료 예약
         scheduleStopAt18(jobId);
     }
 
+    /**
+     * 실제 실행 로직
+     */
+    private void runTask(Long jobId, boolean isClient) {
+        UserRequestData data = videoRequestService.getJobRequest(jobId);
+        if (data == null) {
+            log.warn("[SCHED] No request data in Redis for job {}", jobId);
+            return;
+        }
 
+        EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
+        if (summary == null) {
+            log.warn("[SCHED] No ES data for locationCode={} job={}", data.getLocationCode(), jobId);
+            return;
+        }
+
+        try {
+            sender.sendEnvironmentDataToFastAPI(
+                    summary,
+                    data.getUserId(),
+                    data.getImageKey(),
+                    data.getPrompttext(),
+                    isClient // ✅ 클라이언트 실행 여부 전달
+            );
+            log.info("[SCHED] Sent video request for job={}, user={}, isClient={}", jobId, data.getUserId(), isClient);
+        } catch (Exception e) {
+            log.error("[SCHED] Failed to send video request for job {}", jobId, e);
+        }
+    }
 
     /**
      * 특정 jobId의 스케줄링 중단
@@ -90,7 +102,7 @@ public class DynamicVideoScheduler {
         LocalDateTime stopTime = now.withHour(18).withMinute(0).withSecond(0);
 
         if (stopTime.isBefore(now)) {
-            stopTime = stopTime.plusDays(1); // 이미 18시가 지났으면 내일로
+            stopTime = stopTime.plusDays(1);
         }
 
         taskScheduler.schedule(() -> stopJobSchedule(jobId),

@@ -28,7 +28,7 @@ public class JobService {
     private final DynamicVideoScheduler dynamicVideoScheduler;
 
     @Transactional
-    public Job createJobAndProcess(String imageKey, String locationCode, String purpose, String userName) {
+    public Job createJobAndProcess(String imageKey, String locationCode, String purpose, String userName, String prompt_text) {
         // 1. 사용자 조회
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userName));
@@ -40,14 +40,16 @@ public class JobService {
                 .purpose(purpose)
                 .locationCode(locationCode)
                 .sourceImageKey(imageKey)
+                .promptText(prompt_text)
                 .build();
+        jobRepository.save(job);
         jobRepository.save(job);
 
         // 3. Redis에 jobId + userId + imageKey + locationCode 저장
-        videoRequestService.saveJobRequest(job.getId(), user.getId(), imageKey, locationCode);
+        videoRequestService.saveJobRequest(job.getId(), user.getId(), imageKey, locationCode, prompt_text, true);
 
         // 4. 스케줄링 시작 (jobId 기준으로 관리, FastAPI에는 userId 전달)
-        dynamicVideoScheduler.startJobSchedule(job.getId(), user.getId());
+        dynamicVideoScheduler.startJobSchedule(job.getId());
 
         return job;
     }

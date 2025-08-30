@@ -5,8 +5,6 @@ import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.mapping.RuntimeField;
 import co.elastic.clients.elasticsearch._types.mapping.RuntimeFieldType;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import co.elastic.clients.elasticsearch.core.GetRequest;
-import co.elastic.clients.elasticsearch.core.GetResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.json.JsonData;
@@ -35,6 +33,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
+
+import static org.apache.commons.lang3.Validate.notBlank;
 
 @Service
 @RequiredArgsConstructor
@@ -108,7 +108,74 @@ public class DashboardYoutubeService {
         if (val instanceof Number n) return n.longValue();
         String s = String.valueOf(val).trim();
         if (s.isEmpty()) return 0L;
-        try { return Long.parseLong(s); } catch (Exception ignore) { return 0L; }
+        try {
+            return Long.parseLong(s);
+        } catch (Exception ignore) {
+            return 0L;
+        }
+    }
+
+    public DashboardDayStats dailyStats(LocalDate day,
+                                        @Nullable String region,
+                                        @Nullable String channelId) throws IOException {
+        Instant start = day.atStartOfDay(KST).toInstant();
+        Instant end = day.plusDays(1).atStartOfDay(KST).toInstant();
+
+        // 필터 쿼리 구성
+        List<Query> filters = new ArrayList<>();
+        filters.add(Query.of(q -> q.range(r -> r.field(F_TIME)
+                .gte(JsonData.of(start.toString()))
+                .lt(JsonData.of(end.toString()))
+        )));
+        if (notBlank(region)) {
+            filters.add(Query.of(q -> q.term(t -> t.field(F_REGION).value(region))));
+        }
+        if (notBlank(channelId)) {
+            filters.add(Query.of(q -> q.term(t -> t.field(F_CH).value(channelId))));
+        }
+
+        // 문서를 충분히 가져와서 자바에서 집계
+        SearchResponse<Map> res = es.search(s -> s
+                        .index(index)
+                        .size(10_000)
+                        .query(q -> q.bool(b -> b.filter(filters))),
+                Map.class);
+
+        // video_id별로 view/like/comment의 "최대값"을 계산
+        Map<String, long[]> perVideo = new HashMap<>(); // videoId -> [maxView, maxLike, maxComment]
+        for (var hit : res.hits().hits()) {
+            Map src = hit.source();
+            if (src == null) continue;
+
+            Object vid = src.get("video_id"); // ✅ 필드명
+            if (vid == null) continue;
+            String videoId = String.valueOf(vid);
+
+            long v = parseLongSafe(src.get("view_count"));
+            long l = parseLongSafe(src.get("like_count"));
+            long c = parseLongSafe(src.get("comment_count"));
+
+            long[] acc = perVideo.computeIfAbsent(videoId, k -> new long[]{0L, 0L, 0L});
+
+            if (v > acc[0]) acc[0] = v;
+            if (l > acc[1]) acc[1] = l;
+            if (c > acc[2]) acc[2] = c;
+        }
+
+        // 집계 합계 계산 (for문 밖에서)
+        long views = 0L, likes = 0L, comments = 0L;
+        for (long[] p : perVideo.values()) {
+            views += p[0];
+            likes += p[1];
+            comments += p[2]; // 댓글 수 합계
+        }
+
+        return DashboardDayStats.builder()
+                .date(day)
+                .viewCount(views)
+                .likeCount(likes)
+                .commentCount(comments)
+                .build(); // ✅ 누락된 build() 추가
     }
 
     /* ③ 전체 누적 */
