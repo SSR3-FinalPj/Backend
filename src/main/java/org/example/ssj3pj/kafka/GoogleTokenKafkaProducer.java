@@ -1,4 +1,3 @@
-// src/main/java/org/example/ssj3pj/kafka/GoogleTokenKafkaProducer.java
 package org.example.ssj3pj.kafka;
 
 import lombok.RequiredArgsConstructor;
