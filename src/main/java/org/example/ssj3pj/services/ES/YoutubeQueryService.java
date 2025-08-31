@@ -409,4 +409,197 @@ public class YoutubeQueryService {
             return null;
         }
     }
+
+    /**
+     * 특정 비디오의 트래픽 소스 분석 데이터 조회 (esDocId 기반)
+     * 채널 전체 트래픽 소스를 해당 비디오의 조회수 비율에 맞춰 계산
+     */
+    public List<TrafficSourceDto> findTrafficSourceByVideoId(String esDocId, String videoId) throws IOException {
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return Collections.emptyList();
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        
+        // 1. 해당 비디오의 조회수 찾기
+        JsonNode videosNode = source.path("videos");
+        long targetVideoViews = 0;
+        boolean videoFound = false;
+        
+        if (videosNode.isArray()) {
+            for (JsonNode video : videosNode) {
+                if (videoId.equals(video.path("video_id").asText())) {
+                    targetVideoViews = video.path("view_count").asLong(0);
+                    videoFound = true;
+                    log.info("타겟 비디오 찾음: videoId={}, views={}", videoId, targetVideoViews);
+                    break;
+                }
+            }
+        }
+        
+        if (!videoFound) {
+            log.warn("해당 비디오를 찾을 수 없음: videoId={}", videoId);
+            return Collections.emptyList();
+        }
+        
+        if (targetVideoViews == 0) {
+            log.warn("비디오 조회수가 0: videoId={}", videoId);
+            return Collections.emptyList();
+        }
+        
+        // 2. 채널 전체 조회수 계산
+        long totalChannelViews = 0;
+        if (videosNode.isArray()) {
+            for (JsonNode video : videosNode) {
+                totalChannelViews += video.path("view_count").asLong(0);
+            }
+        }
+        
+        if (totalChannelViews == 0) {
+            log.warn("채널 전체 조회수가 0");
+            return Collections.emptyList();
+        }
+        
+        // 3. 비율 계산
+        double videoRatio = (double) targetVideoViews / totalChannelViews;
+        log.info("비디오 비율 계산: {}({}) / {}(total) = {}", 
+                videoId, targetVideoViews, totalChannelViews, String.format("%.4f", videoRatio));
+        
+        // 4. 채널 트래픽 소스 데이터 조회 및 총합 계산
+        JsonNode channelAnalytics = source.path("channel_analytics");
+        JsonNode trafficAnalytics = channelAnalytics.path("traffic_source_analytics");
+        
+        List<TrafficSourceDto> tempResult = new ArrayList<>();
+        long totalChannelTrafficViews = 0;
+        
+        // 먼저 채널 트래픽 소스 총합을 구함
+        if (trafficAnalytics.isArray()) {
+            for (JsonNode traffic : trafficAnalytics) {
+                String sourceType = traffic.path("insightTrafficSourceType").asText(null);
+                long channelViews = traffic.path("views").asLong(0);
+                
+                if (sourceType != null && channelViews > 0) {
+                    totalChannelTrafficViews += channelViews;
+                    tempResult.add(TrafficSourceDto.builder()
+                            .insightTrafficSourceType(sourceType)
+                            .views(channelViews)
+                            .build());
+                }
+            }
+        }
+        
+        log.info("채널 트래픽 소스 총합: {}", totalChannelTrafficViews);
+        
+        List<TrafficSourceDto> result = new ArrayList<>();
+        
+        if (totalChannelTrafficViews > 0 && !tempResult.isEmpty()) {
+            // 각 트래픽 소스를 실제 비디오 조회수에 맞춰 비례 배분
+            long assignedViews = 0;
+            
+            for (int i = 0; i < tempResult.size(); i++) {
+                TrafficSourceDto item = tempResult.get(i);
+                long videoTrafficViews;
+                
+                if (i == tempResult.size() - 1) {
+                    // 마지막 항목은 남은 조회수를 모두 할당 (반올림 오차 보정)
+                    videoTrafficViews = targetVideoViews - assignedViews;
+                } else {
+                    // 비례 계산
+                    double sourceRatio = (double) item.getViews() / totalChannelTrafficViews;
+                    videoTrafficViews = Math.round(targetVideoViews * sourceRatio);
+                    assignedViews += videoTrafficViews;
+                }
+                
+                if (videoTrafficViews > 0) {
+                    result.add(TrafficSourceDto.builder()
+                            .insightTrafficSourceType(item.getInsightTrafficSourceType())
+                            .views(videoTrafficViews)
+                            .build());
+                    
+                    double sourceRatio = (double) item.getViews() / totalChannelTrafficViews;
+                    log.info("비례 배분: {} = {} × {:.4f} = {} views", 
+                            item.getInsightTrafficSourceType(), targetVideoViews, 
+                            sourceRatio, videoTrafficViews);
+                }
+            }
+            
+            // 검증: 총합 확인
+            long totalAssigned = result.stream().mapToLong(TrafficSourceDto::getViews).sum();
+            log.info("트래픽 소스 총합 검증: {} (목표: {})", totalAssigned, targetVideoViews);
+        }
+        
+        // 조회수 내림차순 정렬
+        result.sort((a, b) -> Long.compare(b.getViews(), a.getViews()));
+        
+        log.info("최종 결과: videoId={}, {} 개 트래픽 소스 (조회수 비율 기반)", videoId, result.size());
+        return result;
+    }
+
+    /**
+     * 사용자별 일별 인구통계 데이터 조회 (esDocId 기반)
+     */
+    public List<DailyDemographicsDto> findDailyDemographics(String esDocId, LocalDate startDate, LocalDate endDate) throws IOException {
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return Collections.emptyList();
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode channelAnalytics = source.path("channel_analytics");
+        JsonNode demographics = channelAnalytics.path("demographics_analytics");
+        
+        List<DailyDemographicsDto> result = new ArrayList<>();
+        
+        if (demographics.isArray()) {
+            for (JsonNode demo : demographics) {
+                String date = demo.path("stat_date").asText(null);
+                if (date != null) {
+                    try {
+                        LocalDate statDate = LocalDate.parse(date);
+                        // 날짜 범위 필터링
+                        if ((statDate.isEqual(startDate) || statDate.isAfter(startDate)) && 
+                            (statDate.isEqual(endDate) || statDate.isBefore(endDate))) {
+                            
+                            List<DemographicPoint> points = new ArrayList<>();
+                            JsonNode demoPoints = demo.path("demographic_points");
+                            
+                            if (demoPoints.isArray()) {
+                                for (JsonNode point : demoPoints) {
+                                    points.add(DemographicPoint.builder()
+                                            .ageGroup(point.path("ageGroup").asText())
+                                            .gender(point.path("gender").asText())
+                                            .viewerPercentage(point.path("viewerPercentage").asDouble())
+                                            .build());
+                                }
+                            }
+                            
+                            result.add(DailyDemographicsDto.builder()
+                                    .date(date)
+                                    .demographics(points)
+                                    .build());
+                        }
+                    } catch (Exception e) {
+                        log.warn("날짜 파싱 실패: {}", date);
+                    }
+                }
+            }
+        }
+        
+        // 날짜 오름차순 정렬
+        result.sort((a, b) -> a.getDate().compareTo(b.getDate()));
+        return result;
+    }
 }
