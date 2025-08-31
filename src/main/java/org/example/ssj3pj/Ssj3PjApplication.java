@@ -12,11 +12,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class Ssj3PjApplication {
 
     public static void main(String[] args) {
-        // Load .env file and set system properties
-        Dotenv dotenv = Dotenv.load();
-        dotenv.entries().forEach(entry -> {
-            System.setProperty(entry.getKey(), entry.getValue());
-        });
+//        // Load .env file and set system properties
+//        Dotenv dotenv = Dotenv.load();
+//        dotenv.entries().forEach(entry -> {
+//            System.setProperty(entry.getKey(), entry.getValue());
+//        });
         SpringApplication.run(Ssj3PjApplication.class, args);
     }
 }
