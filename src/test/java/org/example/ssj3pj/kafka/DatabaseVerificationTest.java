@@ -16,12 +16,6 @@ import java.util.List;
 @ActiveProfiles("test") // 테스트 프로필 사용
 class DatabaseVerificationTest {
 
-    @MockBean
-    private S3Client s3Client;
-
-    @MockBean
-    private S3Presigner s3Presigner;
-
     @Autowired
     private KafkaMessageRepository repository;
 
