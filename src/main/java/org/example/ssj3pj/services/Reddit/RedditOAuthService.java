@@ -2,10 +2,12 @@ package org.example.ssj3pj.services.Reddit;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.ssj3pj.dto.GoogleAccessTokenEvent;
 import org.example.ssj3pj.dto.reddit.RedditMeDto;
 import org.example.ssj3pj.dto.reddit.TokenResponseDto;
 import org.example.ssj3pj.entity.User.RedditToken;
 import org.example.ssj3pj.entity.User.Users;
+import org.example.ssj3pj.kafka.GoogleTokenKafkaProducer;
 import org.example.ssj3pj.repository.RedditTokenRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -30,6 +32,7 @@ public class RedditOAuthService {
     // 필요 시 @Qualifier("redditRestTemplate") 사용
     private final RestTemplate restTemplate;
     private final RedditTokenRepository tokenRepo;
+    private final GoogleTokenKafkaProducer tokenProducer;
 
     @Value("${reddit.client-id}")     String clientId;
     @Value("${reddit.client-secret}") String clientSecret;
@@ -55,6 +58,15 @@ public class RedditOAuthService {
         row.setExpiresAt(Instant.now().plusSeconds(token.getExpiresIn()));
 
         tokenRepo.save(row);
+
+        tokenProducer.publish(new GoogleAccessTokenEvent(
+                row.getUser().getId(),
+                "reddit",                              // provider 구분
+                row.getAccessToken(),
+                row.getExpiresAt().getEpochSecond(),
+                "refreshed",
+                row.getRedditUsername()                  // extra: Reddit username
+        ));
     }
 
     /** 간단 연동 상태 */

@@ -79,7 +79,7 @@ public class YoutubeJobUploadService {
                     .build();
                     
             // 6. SSE 알림 발송
-            // sseHub.notifyYoutubeUploadCompleted(userId, videoId);
+             sseHub.notifyYoutubeUploadCompleted(userId, videoId);
             
             log.info("YouTube 업로드 완료: videoId={}", videoId);
             return result;

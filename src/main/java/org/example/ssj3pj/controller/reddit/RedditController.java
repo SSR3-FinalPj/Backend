@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/es/reddit")
+@RequestMapping("/api/reddit")
 public class RedditController {
 
     private final RedditQueryService redditQueryService;
