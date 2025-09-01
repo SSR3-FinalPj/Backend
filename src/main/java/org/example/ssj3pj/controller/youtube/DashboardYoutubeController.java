@@ -27,22 +27,6 @@ public class DashboardYoutubeController {
     private final DashboardYoutubeService svc;
     private final JwtUtils jwtUtils;
 
-    // ① 단일 날짜
-    @Tag(name = "dashboard", description = "대쉬보드")
-    @GetMapping
-    public ResponseEntity<DashboardDayStats> daily(
-            @RequestParam String date,
-            @RequestParam(required = false) String region,
-            @RequestParam(name = "channel_id", required = false) String channelId
-    ) throws IOException {
-        try {
-            LocalDate d = LocalDate.parse(date);
-            return ResponseEntity.ok(svc.dailyStats(d, region, channelId));
-        } catch (DateTimeParseException e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
     // ② 기간(일별 배열)
     @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/range")
