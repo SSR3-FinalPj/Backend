@@ -3,6 +3,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -18,9 +19,15 @@ public class AwsConfig {
     public AwsCredentialsProvider awsCreds(
             @Value("${aws.profile:myapp-s3}") String profileName // ← 원하는 프로필명
     ) {
-        return ProfileCredentialsProvider.builder()
-                .profileName(profileName)
-                .build();
+        // 먼저 지정된 프로필을 시도하고, 실패시 기본 자격증명 체인 사용
+        try {
+            return ProfileCredentialsProvider.builder()
+                    .profileName(profileName)
+                    .build();
+        } catch (Exception e) {
+            // 프로필 로드 실패 시 기본 자격증명 체인 사용
+            return DefaultCredentialsProvider.create();
+        }
     }
 
     @Bean

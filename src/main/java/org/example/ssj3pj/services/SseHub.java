@@ -63,7 +63,15 @@ public class SseHub {
         send(userId, VIDEO_READY_EVENT, payload);
     }
 
-
+//    /** YouTube 업로드 완료 알림 */
+//    public void notifyYoutubeUploadCompleted(Long userId, String videoId) {
+//        var payload = Map.of(
+//            "videoId", videoId,
+//            "videoUrl", "https://www.youtube.com/watch?v=" + videoId,
+//            "timestamp", Instant.now().toString()
+//        );
+//        send(userId, "youtube-upload-completed", payload);
+//    }
 
     /** ★ 하트비트: 일정 주기로 모든 연결에 ping 전송 */
     @Scheduled(fixedDelayString = "${sse.heartbeat-millis:25000}")

@@ -104,7 +104,7 @@ prompt:
 
 
 google:
-  client-id: 500134374276-9gt50jh883gppicv571hifvbtqp9h735.apps.googleusercontent.com
+  client-id: ${YOUR_CLIENT_ID}
   client-secret: ${YOUR_CLIENT_SECRET}
   redirect-uri: http://localhost:8080/api/google/callback
   token-uri: https://oauth2.googleapis.com/token
@@ -142,4 +142,3 @@ sse:
     query-param: sse_token   # EventSource에 붙일 쿼리 토큰 이름
   dev:
     allow-userid-param: false  # 로컬에서만 true로 잠깐 켜서 ?userId= 테스트하고, 운영은 false
-
