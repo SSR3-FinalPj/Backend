@@ -56,11 +56,11 @@ public class JobService {
 
 
     @Transactional
-    public JobResult completeJob(Job job, String resultKey, String resultType) {
+    public JobResult completeJob(Job job, String resultKey, String type) {
         JobResult jobResult = JobResult.builder()
                 .job(job)
                 .resultKey(resultKey)
-                .resultType(resultType)
+                .type(type)
                 .status("COMPLETED")
                 .build();
         jobResultRepository.save(jobResult);
