@@ -65,6 +65,7 @@ spring:
       raw: citydata
       googleAccessToken: googleToken
       raw2: youtubedata
+      raw3: redditdata
 
 youtube:
   upload:
@@ -112,7 +113,7 @@ reddit:
   token-url: https://www.reddit.com/api/v1/access_token
   api-base: https://oauth.reddit.com
   redirect-uri: ${REDDIT_REDIRECT_URI:http://localhost:8080/api/reddit/callback}
-  scopes: identity read submit
+  scopes: identity edit history flair mysubreddits privatemessages read report save submit subscribe vote
 
 security:
   oauth:
