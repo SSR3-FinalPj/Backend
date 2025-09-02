@@ -32,9 +32,8 @@ public class YoutubeUploadController {
     /**
      * JobResult를 YouTube에 업로드
      */
-    @PostMapping("/upload/{jobId}/result/{resultId}")
+    @PostMapping("/upload/{resultId}")
     public ResponseEntity<YoutubeUploadResultDto> uploadJobResult(
-            @PathVariable Long jobId,
             @PathVariable Long resultId,
             @Valid @RequestBody YoutubeUploadRequestDto request,
             HttpServletRequest httpRequest) {
@@ -43,12 +42,12 @@ public class YoutubeUploadController {
             // 사용자 인증 및 조회
             Long userId = getUserIdFromRequest(httpRequest);
             
-            log.info("YouTube 업로드 요청: jobId={}, resultId={}, userId={}, title={}", 
-                    jobId, resultId, userId, request.getTitle());
+            log.info("YouTube 업로드 요청:  resultId={}, userId={}, title={}",
+                    resultId, userId, request.getTitle());
             
             // 업로드 실행
             YoutubeUploadResultDto result = youtubeJobUploadService.uploadJobResult(
-                    jobId, resultId, request, userId);
+                     resultId, request, userId);
             
             if (result.isSuccess()) {
                 log.info("YouTube 업로드 성공: videoId={}", result.getVideoId());
@@ -61,12 +60,11 @@ public class YoutubeUploadController {
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {
-            log.error("YouTube 업로드 처리 중 오류: jobId={}, resultId={}", jobId, resultId, e);
+            log.error("YouTube 업로드 처리 중 오류: resultId={}", resultId, e);
             
             YoutubeUploadResultDto errorResult = YoutubeUploadResultDto.builder()
                     .success(false)
                     .errorMessage("업로드 처리 중 오류가 발생했습니다: " + e.getMessage())
-                    .jobId(jobId)
                     .resultId(resultId)
                     .build();
                     

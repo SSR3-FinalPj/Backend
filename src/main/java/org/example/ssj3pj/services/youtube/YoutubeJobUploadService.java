@@ -39,15 +39,15 @@ public class YoutubeJobUploadService {
      * JobResult를 YouTube에 업로드
      */
     @Transactional
-    public YoutubeUploadResultDto uploadJobResult(Long jobId, Long resultId, 
+    public YoutubeUploadResultDto uploadJobResult(Long resultId,
                                                  YoutubeUploadRequestDto request, Long userId) {
         Path tempVideoFile = null;
         
         try {
             // 1. 권한 확인 및 데이터 조회
-            JobResult jobResult = validateAndGetJobResult(jobId, resultId, userId);
+            JobResult jobResult = validateAndGetJobResult(resultId, userId);
             
-            log.info("YouTube 업로드 시작: jobId={}, resultId={}, userId={}", jobId, resultId, userId);
+            log.info("YouTube 업로드 시작: resultId={}, userId={}", resultId, userId);
             
             // 2. S3에서 임시 파일로 다운로드
             tempVideoFile = storageService.downloadToTemporary(jobResult.getResultKey());
@@ -74,7 +74,6 @@ public class YoutubeJobUploadService {
                     .videoId(videoId)
                     .videoUrl(videoUrl)
                     .title(request.getTitle())
-                    .jobId(jobId)
                     .resultId(resultId)
                     .build();
                     
@@ -85,13 +84,12 @@ public class YoutubeJobUploadService {
             return result;
             
         } catch (Exception e) {
-            log.error("YouTube 업로드 실패: jobId={}, resultId={}", jobId, resultId, e);
+            log.error("YouTube 업로드 실패: resultId={}", resultId, e);
             
             // 실패 결과 생성
             return YoutubeUploadResultDto.builder()
                     .success(false)
                     .errorMessage(e.getMessage())
-                    .jobId(jobId)
                     .resultId(resultId)
                     .title(request.getTitle())
                     .build();
@@ -107,28 +105,14 @@ public class YoutubeJobUploadService {
     /**
      * 권한 확인 및 JobResult 조회
      */
-    private JobResult validateAndGetJobResult(Long jobId, Long resultId, Long userId) {
+    private JobResult validateAndGetJobResult(Long resultId, Long userId) {
         // 사용자 존재 확인
         Users user = usersRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + userId));
 
-        // Job 존재 확인
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new RuntimeException("Job을 찾을 수 없습니다: " + jobId));
-
-        // Job 소유권 확인
-        if (!job.getUser().getId().equals(userId)) {
-            throw new RuntimeException("Job에 대한 접근 권한이 없습니다");
-        }
-
         // JobResult 존재 확인
         JobResult jobResult = jobResultRepository.findById(resultId)
                 .orElseThrow(() -> new RuntimeException("JobResult를 찾을 수 없습니다: " + resultId));
-
-        // JobResult와 Job 연관 관계 확인
-        if (!jobResult.getJob().getId().equals(jobId)) {
-            throw new RuntimeException("JobResult가 지정된 Job에 속하지 않습니다");
-        }
 
         // 완료된 결과만 업로드 가능
         if (!"COMPLETED".equals(jobResult.getStatus())) {

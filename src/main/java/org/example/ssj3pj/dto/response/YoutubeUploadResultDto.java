@@ -27,9 +27,6 @@ public class YoutubeUploadResultDto {
     /** 오류 메시지 (실패 시) */
     private String errorMessage;
 
-    /** Job ID */
-    private Long jobId;
-
     /** JobResult ID */
     private Long resultId;
 }
