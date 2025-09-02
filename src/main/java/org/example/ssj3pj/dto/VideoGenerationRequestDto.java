@@ -10,6 +10,10 @@ import java.util.Map;
 @Builder
 public class VideoGenerationRequestDto {
 
+
+    @JsonProperty("jobId")
+    private Long jobId;
+
     @JsonProperty("img")
     private String imageKey;
 

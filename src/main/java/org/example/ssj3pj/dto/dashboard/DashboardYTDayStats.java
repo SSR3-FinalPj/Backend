@@ -7,7 +7,7 @@ import lombok.Data;
 import java.time.LocalDate;
 
 @Data @Builder
-public class DashboardDayStats {
+public class DashboardYTDayStats {
     private LocalDate date;
     @JsonProperty("view_count") private long viewCount;
     @JsonProperty("like_count") private long likeCount;

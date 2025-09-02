@@ -1,15 +1,20 @@
-package org.example.ssj3pj.controller.youtube;
+package org.example.ssj3pj.controller.reddit;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.example.ssj3pj.dto.dashboard.DashboardRDRangeStats;
+import org.example.ssj3pj.dto.dashboard.DashboardRDTotalStats;
 import org.example.ssj3pj.dto.dashboard.DashboardYTRangeStats;
 import org.example.ssj3pj.dto.dashboard.DashboardYTTotalStats;
 import org.example.ssj3pj.security.jwt.JwtUtils;
-import org.example.ssj3pj.services.youtube.DashboardYoutubeService;
-import lombok.RequiredArgsConstructor;
+import org.example.ssj3pj.services.Reddit.DashboardRedditService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
@@ -17,17 +22,17 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 @RestController
-@RequestMapping("/api/dashboard/youtube")
+@RequestMapping("/api/dashboard/reddit")
 @RequiredArgsConstructor
-public class DashboardYoutubeController {
+public class DashboardRedditController {
 
-    private final DashboardYoutubeService svc;
+    private final DashboardRedditService svc;
     private final JwtUtils jwtUtils;
 
     // ② 기간(일별 배열)
     @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/range")
-    public ResponseEntity<DashboardYTRangeStats> daily(
+    public ResponseEntity<DashboardRDRangeStats> daily(
             @RequestParam String startDate,
             @RequestParam String endDate,
             @RequestParam(required = false) String region,
@@ -58,7 +63,7 @@ public class DashboardYoutubeController {
     // ③ 전체 누적
     @Tag(name = "dashboard", description = "대쉬보드")
     @GetMapping("/total")
-    public DashboardYTTotalStats total(
+    public DashboardRDTotalStats total(
             HttpServletRequest request,
             @RequestParam(required = false) String region,
             @RequestParam(name = "channel_id", required = false) String channelId

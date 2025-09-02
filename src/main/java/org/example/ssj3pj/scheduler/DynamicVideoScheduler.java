@@ -72,6 +72,7 @@ public class DynamicVideoScheduler {
         try {
             sender.sendEnvironmentDataToFastAPI(
                     summary,
+                    jobId,
                     data.getUserId(),
                     data.getImageKey(),
                     data.getPrompttext(),

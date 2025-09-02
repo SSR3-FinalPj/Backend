@@ -8,12 +8,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
-import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;
-import org.example.ssj3pj.dto.dashboard.DashboardTotalStats;
+import org.example.ssj3pj.dto.dashboard.DashboardYTDayStats;
+import org.example.ssj3pj.dto.dashboard.DashboardYTTotalStats;
 import org.example.ssj3pj.dto.youtube.*;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +19,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
-import java.util.Collections;
+
 import static org.example.ssj3pj.util.JsonNodeUtils.*;
 
 @Service
@@ -91,7 +89,7 @@ public class YoutubeQueryService {
             }
         }
         // 합산 DTO
-        DashboardTotalStats totalStats = DashboardTotalStats.builder()
+        DashboardYTTotalStats totalStats = DashboardYTTotalStats.builder()
                 .totalVideoCount(totalVideoCount)
                 .totalViewCount(totalView)
                 .totalLikeCount(totalLike)
@@ -240,7 +238,7 @@ public class YoutubeQueryService {
                 .channelTitle(channelTitle)
                 .build();
     }
-    public DashboardDayStats findDayStatForChannel(String esDocId, LocalDate date) throws IOException {
+    public DashboardYTDayStats findDayStatForChannel(String esDocId, LocalDate date) throws IOException {
         GetRequest getRequest = new GetRequest.Builder()
                 .index(INDEX)
                 .id(esDocId)
@@ -265,7 +263,7 @@ public class YoutubeQueryService {
             view_count += videoNode.path("view_count").asLong(0);
         }
         // DashboardDayStats 객체 생성
-        return DashboardDayStats.builder()
+        return DashboardYTDayStats.builder()
                 .date(date)  // Service에서 받은 날짜 문자열
                 .viewCount(view_count)
                 .subscriberCount(channelStatsNode.path("subscriber_count").asLong(0))
@@ -321,7 +319,7 @@ public class YoutubeQueryService {
 
         return null;
     }
-    public DashboardTotalStats findAllStat(String esDocId) throws IOException{
+    public DashboardYTTotalStats findAllStat(String esDocId) throws IOException{
         GetRequest getRequest = new GetRequest.Builder()
                 .index(INDEX)
                 .id(esDocId)
@@ -344,7 +342,7 @@ public class YoutubeQueryService {
             like_count += videoNode.path("like_count").asLong(0);
             view_count += videoNode.path("view_count").asLong(0);
         }
-        return DashboardTotalStats.builder()
+        return DashboardYTTotalStats.builder()
                 .totalVideoCount(source.path("channel_stats").path("video_count").asLong())
                 .totalLikeCount(like_count)
                 .totalViewCount(view_count)

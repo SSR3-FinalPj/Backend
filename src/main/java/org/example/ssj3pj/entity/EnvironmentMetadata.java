@@ -21,9 +21,6 @@ public class EnvironmentMetadata {
     @Column(name = "location")
     private String location;
 
-    @Column(name = "location_id")
-    private String location_id;
-
     @Column(name = "recorded_at")
     private String recordedAt;          // 문자열로 저장되어 있다면 String 유지
 

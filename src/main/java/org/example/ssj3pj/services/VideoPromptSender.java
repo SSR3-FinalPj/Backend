@@ -36,6 +36,7 @@ public class VideoPromptSender {
      * - 로그인한 사용자의 users.id를 DTO에 포함하여 전송
      */
     public void sendEnvironmentDataToFastAPI(EnvironmentSummaryDto weatherData,
+                                             Long jobId,
                                              Long userId,
                                              String imageKey,
                                              String promptText,
@@ -43,6 +44,7 @@ public class VideoPromptSender {
                                              boolean isClient) {
         log.info("API START");
         VideoGenerationRequestDto requestDto = VideoGenerationRequestDto.builder()
+                .jobId(jobId)
                 .imageKey(imageKey)
                 .userId(String.valueOf(userId)) // Convert Long to String
                 .promptText(promptText)

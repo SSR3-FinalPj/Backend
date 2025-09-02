@@ -1,28 +1,20 @@
 package org.example.ssj3pj.controller.youtube;
 
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;
 import org.example.ssj3pj.dto.youtube.ChannelInfoDto;
 import org.example.ssj3pj.dto.youtube.UploadRangeDto;
 import org.example.ssj3pj.dto.youtube.VideoListDto;
-import org.example.ssj3pj.dto.youtube.VideoDetailDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.youtube.YouTubeChannelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
 import java.security.Principal;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 
 /**
  * YouTube 채널 관련 API 컨트롤러
