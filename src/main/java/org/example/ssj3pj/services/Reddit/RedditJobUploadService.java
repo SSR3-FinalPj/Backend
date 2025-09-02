@@ -75,7 +75,7 @@ public class RedditJobUploadService {
                     .build();
 
             // 6. SSE 알림 발송
-//            sseHub.notifyRedditUploadCompleted(userId, postId);
+            sseHub.notifyRedditUploadCompleted(userId, postId);
 
             log.info("Reddit 업로드 완료: postId={}", postId);
             return result;
