@@ -5,10 +5,8 @@ import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
 import org.example.ssj3pj.dto.youtube.*;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.entity.YoutubeMetadata;
@@ -19,8 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -267,7 +263,7 @@ public class YouTubeChannelService {
         return "https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg";
     }
 
-    public UploadRangeDto uploadRange(Users user, LocalDate start, LocalDate end, String channelId) throws IOException{
+    public YTUploadRangeDto uploadRange(Users user, LocalDate start, LocalDate end, String channelId) throws IOException{
 
         log.info("채널 비디오 목록(중복 제거/최신 1개) 조회 시작: channelId={}", channelId);
         YoutubeMetadata metadata = youtubeMetadataRepository
@@ -275,7 +271,7 @@ public class YouTubeChannelService {
                 .orElseThrow(() -> new RuntimeException(
                         "Youtube metadata not found for user: " + user.getUsername() + ", channelId: " + channelId));
         String esDocId = metadata.getEsDocId();
-        UploadRangeDto videoList = youtubeQueryService.findAllVideoRangeDate(esDocId, channelId, start, end);
+        YTUploadRangeDto videoList = youtubeQueryService.findAllVideoRangeDate(esDocId, channelId, start, end);
         return videoList;
     }
 }

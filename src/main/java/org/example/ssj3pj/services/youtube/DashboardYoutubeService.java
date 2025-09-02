@@ -9,15 +9,12 @@ import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
-import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-import org.example.ssj3pj.dto.dashboard.DashboardDayStats;
-import org.example.ssj3pj.dto.dashboard.DashboardRangeStats;
-import org.example.ssj3pj.dto.dashboard.DashboardTotalStats;
+import org.example.ssj3pj.dto.dashboard.DashboardYTDayStats;
+import org.example.ssj3pj.dto.dashboard.DashboardYTRangeStats;
+import org.example.ssj3pj.dto.dashboard.DashboardYTTotalStats;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.entity.YoutubeMetadata;
 import org.example.ssj3pj.repository.UsersRepository;
@@ -67,16 +64,16 @@ public class DashboardYoutubeService {
     }
 
     /* ① 단일 날짜 통계 - 스크립트/런타임 없이 자바에서 reduce */
-    public DashboardRangeStats rangeStats(LocalDate startDay,
-                                          LocalDate endDay,
-                                          @Nullable String region,
-                                          @Nullable String channelId,
-                                          String username) throws IOException {
+    public DashboardYTRangeStats rangeStats(LocalDate startDay,
+                                            LocalDate endDay,
+                                            @Nullable String region,
+                                            @Nullable String channelId,
+                                            String username) throws IOException {
         Users user = usersRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found for username: " + username));
 
-        List<DashboardDayStats> daily = new ArrayList<>();
-        DashboardDayStats lastAvailableStats = null;
+        List<DashboardYTDayStats> daily = new ArrayList<>();
+        DashboardYTDayStats lastAvailableStats = null;
 
         // startDay부터 endDay까지 순회
         for (LocalDate day = startDay; !day.isAfter(endDay); day = day.plusDays(1)) {
@@ -87,7 +84,7 @@ public class DashboardYoutubeService {
                     .findFirstByUserAndIndexedAtBetweenOrderByIndexedAtDesc(user, start, end)
                     .orElse(null);
 
-            DashboardDayStats dayStats;
+            DashboardYTDayStats dayStats;
             if (metadata != null) {
                 // 해당 날짜 데이터가 있으면 그대로 가져오기
                 dayStats = youtubeQueryService.findDayStatForChannel(metadata.getEsDocId(), day);
@@ -95,7 +92,7 @@ public class DashboardYoutubeService {
             } else {
                 if (lastAvailableStats != null) {
                     // 이전 날짜 데이터가 있으면 그것을 재사용
-                    dayStats = DashboardDayStats.builder()
+                    dayStats = DashboardYTDayStats.builder()
                             .date(day)
                             .viewCount(lastAvailableStats.getViewCount())
                             .likeCount(lastAvailableStats.getLikeCount())
@@ -116,7 +113,7 @@ public class DashboardYoutubeService {
         for (int i = 0; i < daily.size(); i++) {
             if (daily.get(i) == null) {
                 // i번째 이후에서 첫 번째 null이 아닌 데이터 찾기
-                DashboardDayStats nextAvailable = null;
+                DashboardYTDayStats nextAvailable = null;
                 for (int j = i + 1; j < daily.size(); j++) {
                     if (daily.get(j) != null) {
                         nextAvailable = daily.get(j);
@@ -125,7 +122,7 @@ public class DashboardYoutubeService {
                 }
                 if (nextAvailable != null) {
                     // null이면 뒤의 데이터로 채움
-                    daily.set(i, DashboardDayStats.builder()
+                    daily.set(i, DashboardYTDayStats.builder()
                             .date(startDay.plusDays(i))
                             .viewCount(nextAvailable.getViewCount())
                             .likeCount(nextAvailable.getLikeCount())
@@ -135,7 +132,7 @@ public class DashboardYoutubeService {
                             .build());
                 } else {
                     // 전체가 null인 경우 0으로 초기화
-                    daily.set(i, DashboardDayStats.builder()
+                    daily.set(i, DashboardYTDayStats.builder()
                             .date(startDay.plusDays(i))
                             .viewCount(0)
                             .likeCount(0)
@@ -151,9 +148,9 @@ public class DashboardYoutubeService {
         YoutubeMetadata metadata = youtubeMetadataRepository.findFirstByUserOrderByIndexedAtDesc(user)
                 .orElseThrow(() -> new RuntimeException("Youtube metadata not found for user: " + user));
         String esDocId = metadata.getEsDocId();
-        DashboardTotalStats dashboardTotalStats = youtubeQueryService.findAllStat(esDocId);
+        DashboardYTTotalStats dashboardTotalStats = youtubeQueryService.findAllStat(esDocId);
 
-        return DashboardRangeStats.builder()
+        return DashboardYTRangeStats.builder()
                 .total(dashboardTotalStats)
                 .daily(daily)
                 .build();
@@ -172,9 +169,9 @@ public class DashboardYoutubeService {
         }
     }
 
-    public DashboardDayStats dailyStats(LocalDate day,
-                                        @Nullable String region,
-                                        @Nullable String channelId) throws IOException {
+    public DashboardYTDayStats dailyStats(LocalDate day,
+                                          @Nullable String region,
+                                          @Nullable String channelId) throws IOException {
         Instant start = day.atStartOfDay(KST).toInstant();
         Instant end = day.plusDays(1).atStartOfDay(KST).toInstant();
 
@@ -227,7 +224,7 @@ public class DashboardYoutubeService {
             comments += p[2]; // 댓글 수 합계
         }
 
-        return DashboardDayStats.builder()
+        return DashboardYTDayStats.builder()
                 .date(day)
                 .viewCount(views)
                 .likeCount(likes)
@@ -236,13 +233,13 @@ public class DashboardYoutubeService {
     }
 
     /* ③ 전체 누적 */
-    public DashboardTotalStats totalStats(String username, String region, String channelId) throws IOException {
+    public DashboardYTTotalStats totalStats(String username, String region, String channelId) throws IOException {
         Users user = usersRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found for username: " + username));
         YoutubeMetadata metadata = youtubeMetadataRepository.findFirstByUserOrderByIndexedAtDesc(user)
                 .orElseThrow(() -> new RuntimeException("Youtube metadata not found for user: " + user));
         String esDocId = metadata.getEsDocId();
-        DashboardTotalStats dashboardTotalStats = youtubeQueryService.findAllStat(esDocId);
+        DashboardYTTotalStats dashboardTotalStats = youtubeQueryService.findAllStat(esDocId);
 
         return dashboardTotalStats;
     }

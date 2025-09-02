@@ -123,7 +123,6 @@ public class KafkaConsumerService {
             EnvironmentMetadata metadata = new EnvironmentMetadata();
             metadata.setEsDocId(jsonNode.get("es_doc_id").asText());
             metadata.setLocation(jsonNode.get("location").asText());
-            metadata.setLocation_id(jsonNode.get("location_id").asText());
             metadata.setSource(jsonNode.get("source").asText());
 
             if (jsonNode.has("recorded_at")) {

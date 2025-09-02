@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 @Data @Builder
-public class DashboardTotalStats {
+public class DashboardYTTotalStats {
     @JsonProperty("total_video_count") private long totalVideoCount;
     @JsonProperty("total_view_count")  private long totalViewCount;
     @JsonProperty("total_like_count")  private long totalLikeCount;
