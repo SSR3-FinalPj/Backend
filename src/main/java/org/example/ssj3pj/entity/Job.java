@@ -32,8 +32,8 @@ public class Job {
     @Column(name = "status", length = 20, nullable = false)
     private String status = "PENDING"; // pending, processing, completed, failed
 
-    @Column(name = "purpose", length = 50, nullable = false)
-    private String purpose; // image, video 등 목적
+    @Column(name = "platform", length = 50, nullable = false)
+    private String platform; // image, video 등 목적
 
     @Column(name = "location_code", length = 20)
     private String locationCode;
