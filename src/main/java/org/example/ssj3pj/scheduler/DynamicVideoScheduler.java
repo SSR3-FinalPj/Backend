@@ -75,6 +75,7 @@ public class DynamicVideoScheduler {
                     data.getUserId(),
                     data.getImageKey(),
                     data.getPrompttext(),
+                    data.getPlatform(),
                     isClient // ✅ 클라이언트 실행 여부 전달
             );
             log.info("[SCHED] Sent video request for job={}, user={}, isClient={}", jobId, data.getUserId(), isClient);

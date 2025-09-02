@@ -46,7 +46,7 @@ public class JobService {
         jobRepository.save(job);
 
         // 3. Redis에 jobId + userId + imageKey + locationCode 저장
-        videoRequestService.saveJobRequest(job.getId(), user.getId(), imageKey, locationCode, prompt_text, true);
+        videoRequestService.saveJobRequest(job.getId(), user.getId(), imageKey, locationCode, prompt_text, platform, true);
 
         // 4. 스케줄링 시작 (jobId 기준으로 관리, FastAPI에는 userId 전달)
         dynamicVideoScheduler.startJobSchedule(job.getId());
@@ -68,7 +68,7 @@ public class JobService {
         job.setStatus("COMPLETED");
         jobRepository.save(job);
 
-        sseHub.notifyVideoReady(job.getId());
+        sseHub.notifyVideoReady(job.getId(), type);
 
         return jobResult;
     }

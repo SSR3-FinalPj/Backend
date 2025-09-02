@@ -17,8 +17,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 public class InitUserConfig {
 
     private final UsersRepository usersRepository;
-    private final JobRepository jobRepository;
-    private final JobResultRepository jobResultRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Bean

@@ -39,6 +39,7 @@ public class VideoPromptSender {
                                              Long userId,
                                              String imageKey,
                                              String promptText,
+                                             String platform,
                                              boolean isClient) {
         log.info("API START");
         VideoGenerationRequestDto requestDto = VideoGenerationRequestDto.builder()
@@ -46,7 +47,7 @@ public class VideoPromptSender {
                 .userId(String.valueOf(userId)) // Convert Long to String
                 .promptText(promptText)
                 .isClient(isClient)
-                .platform("youtube")
+                .platform(platform)
                 .weatherData(weatherData)
                 .userData(Map.of())
                 .build();
