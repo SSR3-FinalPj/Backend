@@ -13,11 +13,19 @@ jwt:
   access-token-expiration: 900000        # 15분 (ms)
   refresh-token-expiration: 1209600000   # 14일 (ms)
 
+# 배포시 이거로 수정
+#spring:
+#  datasource:
+#    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:youtube_db}
+#    username: ${DB_USER:postgres}
+#    password: ${DB_PASS:pass1234}
+
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:youtube_db}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASS:pass1234}
+    url: jdbc:postgresql://localhost:5432/youtube_db
+    username: postgres
+    password: pass1234
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
