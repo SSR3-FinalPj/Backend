@@ -12,12 +12,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.dashboard.DashboardRDDayStats;
 import org.example.ssj3pj.dto.dashboard.DashboardRDTotalStats;
+import org.example.ssj3pj.dto.dashboard.DashboardYTTotalStats;
 import org.example.ssj3pj.dto.reddit.*;
 import org.example.ssj3pj.dto.youtube.ChannelInfoDto;
+import org.example.ssj3pj.dto.youtube.UploadVideoDetailDto;
+import org.example.ssj3pj.dto.youtube.YTUploadRangeDto;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +39,83 @@ public class RedditQueryService {
     private final ObjectMapper objectMapper;
 
     private static final String INDEX = "redditdata";
+
+    public RDUploadRangeDto findAllPostRangeDate(String esDocId, String channelId, LocalDate start, LocalDate end) throws IOException {
+        GetRequest request = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(request, JsonData.class);
+        if (!response.found()) {
+            throw new RuntimeException("❌ ES 문서 없음 (youtube): " + esDocId);
+        }
+
+        // 2. JsonNode 변환
+        JsonNode src = objectMapper.readTree(response.source().toJson().toString());
+
+        JsonNode postsNode = src.path("posts");
+        List<RedditContentDetailDto> videoItemList = new ArrayList<>();
+        long ups_count = 0;
+        double upvote_ratio = 0.0;
+        long comment_count = 0;
+        for (JsonNode postNode : postsNode) {
+            long createdEpoch = postNode.path("created").asLong(0);
+            if (createdEpoch == 0) continue;
+
+            LocalDateTime createdDateTime = Instant.ofEpochSecond(createdEpoch)
+                    .atZone(ZoneId.of("UTC"))
+                    .toLocalDateTime();
+
+            LocalDate uploadDate = createdDateTime.toLocalDate();
+
+            // 전달받은 기간 안에 포함된 영상만 처리
+            if ((uploadDate.isEqual(start) || uploadDate.isAfter(start)) &&
+                    (uploadDate.isEqual(end)   || uploadDate.isBefore(end))) {
+
+                log.info("✅ 기간 포함 영상: {} ({})", postNode.path("title").asText(), uploadDate);
+
+                Double upvoteRatio = postNode.path("upvote_ratio").asDouble(1);
+                int commentCount = postNode.path("num_comments").asInt();
+                int upvoteCount = postNode.path("ups").asInt(0);
+
+                // 영상 DTO 추가
+                RedditContentDetailDto videoItem = RedditContentDetailDto.builder()
+                        .postId(postNode.path("id").asText())
+                        .uploadDate(String.valueOf(uploadDate))
+                        .title(postNode.path("title").asText(null))
+                        .upvote(postNode.path("ups").asInt(0))
+                        .commentCount(postNode.path("num_comments").asInt(0))
+                        .upvoteRatio(postNode.path("upvote_ratio").asDouble(0))
+                        .score(postNode.path("score").asInt(0))
+                        .subReddit(postNode.path("subreddit").asText(null))
+                        .text(postNode.path("selftext").asText(null))
+                        .url(postNode.path("url").asText(null))
+                        .userName(postNode.path("author").asText(null))
+                        .build();
+                videoItemList.add(videoItem);
+
+                upvote_ratio += upvoteRatio;
+                comment_count += commentCount;
+                ups_count += upvoteCount;
+            }
+        }
+        double ratio = upvote_ratio / src.path("post_count").asLong();
+        double roundedRatio = Math.round(ratio * 100.0) / 100.0; // 소수점 둘째자리까지
+        // 합산 DTO
+        DashboardRDTotalStats totalStats = DashboardRDTotalStats.builder()
+                .totalPostCount(src.path("post_count").asLong())
+                .totalUpvoteRatio(roundedRatio)
+                .totalUpvoteCount(ups_count)
+                .totalCommentCount(comment_count)
+                .build();
+
+        // 최종 반환 DTO
+        return RDUploadRangeDto.builder()
+                .total(totalStats)
+                .posts(videoItemList)
+                .build();
+    }
 
     public RedditSummaryDto getSummaryByDocId(String esDocId) {
         try {
@@ -72,7 +155,7 @@ public class RedditQueryService {
             throw new RuntimeException("❌ Reddit 데이터 파싱 실패: " + e.getMessage(), e);
         }
     }
-    public PostListDto findAllVideoForChannel(String esDocId, String channelId, String pageToken) throws IOException {
+    public PostListDto findAllPostForChannel(String esDocId, String channelId) throws IOException {
         GetRequest getRequest = new GetRequest.Builder()
                 .index(INDEX)
                 .id(esDocId)
@@ -81,28 +164,35 @@ public class RedditQueryService {
         GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
 
         JsonNode source = objectMapper.readTree(response.source().toJson().toString());
-        JsonNode videosNode = source.path("videos");
-        List<PostItemDto> videoItemList = new ArrayList<>();
-        for (JsonNode videoNode : videosNode) {
-            PostStatisticsDto videoStatistics = PostStatisticsDto.builder()
-                    .commentCount(videoNode.path("comment_count").asLong())
-                    .likeCount(videoNode.path("like_count").asLong())
-                    .viewCount(videoNode.path("view_count").asLong())
+        JsonNode postsNode = source.path("posts");
+        List<RedditContentDetailDto> postItemList = new ArrayList<>();
+        for (JsonNode postNode : postsNode) {
+            long createdEpoch = postNode.path("created").asLong(0);
+            if (createdEpoch == 0) continue;
+
+            LocalDateTime createdDateTime = Instant.ofEpochSecond(createdEpoch)
+                    .atZone(ZoneId.of("UTC"))
+                    .toLocalDateTime();
+
+            LocalDate uploadDate = createdDateTime.toLocalDate();
+            RedditContentDetailDto videoItem = RedditContentDetailDto.builder()
+                    .postId(postNode.path("id").asText())
+                    .uploadDate(String.valueOf(uploadDate))
+                    .title(postNode.path("title").asText(null))
+                    .upvote(postNode.path("ups").asInt(0))
+                    .commentCount(postNode.path("num_comments").asInt(0))
+                    .upvoteRatio(postNode.path("upvote_ratio").asDouble(0))
+                    .score(postNode.path("score").asInt(0))
+                    .subReddit(postNode.path("subreddit").asText(null))
+                    .text(postNode.path("selftext").asText(null))
+                    .url(postNode.path("url").asText(null))
+                    .userName(postNode.path("author").asText(null))
                     .build();
-            PostItemDto videoItem = PostItemDto.builder()
-                    .postId(videoNode.path("video_id").asText())
-                    .title(videoNode.path("title").asText())
-                    .url("https://www.youtube.com/watch?v=" + videoNode.path("video_id").asText())
-                    .thumbnail(videoNode.path("thumbnails").path("standard").path("url").asText())
-                    .publishedAt(videoNode.path("upload_date").asText())
-                    .statistics(videoStatistics)
-                    .build();
-            videoItemList.add(videoItem);
+            postItemList.add(videoItem);
         }
         return PostListDto.builder()
                 .channelId(channelId)
-                .videos(videoItemList)
-                .nextPageToken(pageToken)
+                .posts(postItemList)
                 .build();
     }
     public ChannelInfoDto findChannel(String esDocId) throws IOException{
@@ -114,14 +204,13 @@ public class RedditQueryService {
         GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
 
         JsonNode source = objectMapper.readTree(response.source().toJson().toString());
-        String channelId = source.path("channel_id").asText();
-        String channelTitle = source.path("channel_title").asText();
+        String channelTitle = source.path("reddit_username").asText();
         if (!response.found()) {
             log.warn("ES document not found for id: {}", esDocId);
             return null;
         }
         return ChannelInfoDto.builder()
-                .channelId(channelId)
+                .channelId(channelTitle)
                 .channelTitle(channelTitle)
                 .build();
     }
@@ -178,25 +267,28 @@ public class RedditQueryService {
 
         for (JsonNode postNode : postsNode) {
             if (videoId.equals(postNode.path("id").asText())) {
-                log.info("videoNode raw: {}", postNode.toPrettyString());
+                long createdEpoch = postNode.path("created").asLong(0);
+                if (createdEpoch == 0) continue;
 
-                // High quality 썸네일이 있으면 사용, 없으면 기본값
-                String thumbnailUrl = null;
-                JsonNode thumbnails = postNode.path("thumbnails");
-                if (thumbnails.has("high")) {
-                    thumbnailUrl = thumbnails.path("high").path("url").asText(null);
-                } else if (thumbnails.has("default")) {
-                    thumbnailUrl = thumbnails.path("default").path("url").asText(null);
-                }
+                LocalDateTime createdDateTime = Instant.ofEpochSecond(createdEpoch)
+                        .atZone(ZoneId.of("UTC"))
+                        .toLocalDateTime();
+
+                LocalDate uploadDate = createdDateTime.toLocalDate();
 
                 // DTO 빌드
                 RedditContentDetailDto dto = RedditContentDetailDto.builder()
-                        .postId(postNode.path("video_id").asText())
-                        .uploadDate(postNode.path("upload_date").asText(null))
+                        .postId(postNode.path("id").asText())
+                        .uploadDate(String.valueOf(uploadDate))
                         .title(postNode.path("title").asText(null))
-                        .viewCount(postNode.path("view_count").asInt(0))
-                        .commentCount(postNode.path("comment_count").asInt(0))
-                        .likeCount(postNode.path("like_count").asInt(0))
+                        .upvote(postNode.path("ups").asInt(0))
+                        .commentCount(postNode.path("num_comments").asInt(0))
+                        .upvoteRatio(postNode.path("upvote_ratio").asDouble(0))
+                        .score(postNode.path("score").asInt(0))
+                        .subReddit(postNode.path("subreddit").asText(null))
+                        .text(postNode.path("selftext").asText(null))
+                        .url(postNode.path("url").asText(null))
+                        .userName(postNode.path("author").asText(null))
                         .build();
 
                 return dto;

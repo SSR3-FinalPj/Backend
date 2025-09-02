@@ -13,7 +13,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UploadRangeDto {
+public class YTUploadRangeDto {
     @JsonProperty("total") private DashboardYTTotalStats total; // 기간 전체 합계
     @JsonProperty("videos") private List<UploadVideoDetailDto> videos; // 일별 배열
 

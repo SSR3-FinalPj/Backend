@@ -16,21 +16,19 @@ public class RedditContentDetailDto {
     
     @JsonProperty("post_id")
     private String postId;
-    
     @JsonProperty("upload_date")
     private String uploadDate;  // ISO 8601 형식 문자열 (예 : 2025-08-05T00:00:27Z)
-    
-    @JsonProperty("text")
-    private String text;  // High 퀄리티 썸네일 URL (hqdefault)
-    
+    private String text;
     private String title;
-    
-    @JsonProperty("view_count")
-    private Integer viewCount;
-    
+    @JsonProperty("user_name")
+    private String userName;
+    @JsonProperty("upvote_ratio")
+    private Double upvoteRatio;
+    @JsonProperty("sub_reddit")
+    private String subReddit;
+    private Integer upvote;
+    private Integer score;
     @JsonProperty("comment_count")
     private Integer commentCount;
-    
-    @JsonProperty("like_count")
-    private Integer likeCount;
+    private String url;
 }

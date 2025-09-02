@@ -263,7 +263,7 @@ public class YouTubeChannelService {
         return "https://i.ytimg.com/vi/" + videoId + "/hqdefault.jpg";
     }
 
-    public UploadRangeDto uploadRange(Users user, LocalDate start, LocalDate end, String channelId) throws IOException{
+    public YTUploadRangeDto uploadRange(Users user, LocalDate start, LocalDate end, String channelId) throws IOException{
 
         log.info("채널 비디오 목록(중복 제거/최신 1개) 조회 시작: channelId={}", channelId);
         YoutubeMetadata metadata = youtubeMetadataRepository
@@ -271,7 +271,7 @@ public class YouTubeChannelService {
                 .orElseThrow(() -> new RuntimeException(
                         "Youtube metadata not found for user: " + user.getUsername() + ", channelId: " + channelId));
         String esDocId = metadata.getEsDocId();
-        UploadRangeDto videoList = youtubeQueryService.findAllVideoRangeDate(esDocId, channelId, start, end);
+        YTUploadRangeDto videoList = youtubeQueryService.findAllVideoRangeDate(esDocId, channelId, start, end);
         return videoList;
     }
 }

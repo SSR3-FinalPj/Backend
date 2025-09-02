@@ -32,7 +32,7 @@ public class YoutubeQueryService {
 
     private static final String INDEX = "youtubedata";  // YouTube 인덱스명
 
-    public UploadRangeDto findAllVideoRangeDate(String esDocId, String channelId, LocalDate start, LocalDate end) throws IOException {
+    public YTUploadRangeDto findAllVideoRangeDate(String esDocId, String channelId, LocalDate start, LocalDate end) throws IOException {
         GetRequest request = new GetRequest.Builder()
                 .index(INDEX)
                 .id(esDocId)
@@ -97,7 +97,7 @@ public class YoutubeQueryService {
                 .build();
 
         // 최종 반환 DTO
-        return UploadRangeDto.builder()
+        return YTUploadRangeDto.builder()
                 .total(totalStats)
                 .videos(videoItemList)
                 .build();

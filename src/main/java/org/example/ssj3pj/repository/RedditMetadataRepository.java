@@ -17,4 +17,4 @@ public interface RedditMetadataRepository extends JpaRepository<RedditMetadata, 
             LocalDateTime  end
     );
     Optional<RedditMetadata> findFirstByUserAndChannelIdOrderByIndexedAtDesc(Users user, String channelId);
-}
+    }

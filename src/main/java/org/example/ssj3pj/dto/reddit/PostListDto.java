@@ -26,15 +26,6 @@ public class PostListDto {
     /**
      * 비디오 목록
      */
-    private List<PostItemDto> videos;
-    
-    /**
-     * 다음 페이지 토큰 (YouTube API 페이지네이션용)
-     */
-    private String nextPageToken;
-    
-    /**
-     * 페이지 정보
-     */
-    private PageInfoDto pageInfo;
+    private List<RedditContentDetailDto> posts;
+
 }
