@@ -18,6 +18,7 @@ import org.example.ssj3pj.dto.youtube.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
@@ -173,19 +174,19 @@ public class YoutubeQueryService {
         }
     }
 
-    public Object getRawYoutubeByEsDocId(String esDocId) {
-        try {
-            GetResponse<JsonData> response = elasticsearchClient.get(
-                    new GetRequest.Builder().index(INDEX).id(esDocId).build(),
-                    JsonData.class
-            );
-            if (!response.found()) throw new RuntimeException("❌ ES 문서 없음: " + esDocId);
+    public JsonNode getJsonNodeByDocId(String esDocId) throws IOException {
+        GetRequest request = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
 
-            JsonNode root = objectMapper.readTree(response.source().toJson().toString());
-            return objectMapper.treeToValue(root, Object.class);
-        } catch (Exception e) {
-            throw new RuntimeException("❌ YouTube ES Object 조회 실패: " + e.getMessage(), e);
+        GetResponse<JsonData> response = elasticsearchClient.get(request, JsonData.class);
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
         }
+
+        return objectMapper.readTree(response.source().toJson().toString());
     }
     public VideoListDto findAllVideoForChannel(String esDocId, String channelId, String pageToken) throws IOException{
         GetRequest getRequest = new GetRequest.Builder()
@@ -613,6 +614,79 @@ public class YoutubeQueryService {
     }
 
     /**
+     * 특정 ES 문서에서 demographics 데이터만 조회
+     */
+    public List<DemographicPoint> getDemographicsFromES(String esDocId) throws IOException {
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return Collections.emptyList();
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode channelAnalytics = source.path("channel_analytics");
+        JsonNode demographics = channelAnalytics.path("demographics");
+        
+        List<DemographicPoint> points = new ArrayList<>();
+        if (demographics.isArray()) {
+            for (JsonNode demo : demographics) {
+                points.add(DemographicPoint.builder()
+                        .ageGroup(demo.path("ageGroup").asText())
+                        .gender(demo.path("gender").asText())
+                        .viewerPercentage(demo.path("viewerPercentage").asDouble())
+                        .build());
+            }
+        }
+        
+        log.info("ES에서 demographics 조회 완료: esDocId={}, {} 개 항목", esDocId, points.size());
+        return points;
+    }
+    
+    /**
+     * 특정 ES 문서에서 트래픽 소스 요약 데이터 조회 (채널 전체)
+     */
+    public List<TrafficSourceDto> findTrafficSourceSummary(String esDocId) throws IOException {
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return Collections.emptyList();
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode channelAnalytics = source.path("channel_analytics");
+        JsonNode trafficAnalytics = channelAnalytics.path("traffic_source_analytics");
+        
+        List<TrafficSourceDto> result = new ArrayList<>();
+        
+        if (trafficAnalytics.isArray()) {
+            for (JsonNode traffic : trafficAnalytics) {
+                String sourceType = traffic.path("insightTrafficSourceType").asText(null);
+                long views = traffic.path("views").asLong(0);
+                
+                if (sourceType != null && views > 0) {
+                    result.add(TrafficSourceDto.builder()
+                            .insightTrafficSourceType(sourceType)
+                            .views(views)
+                            .build());
+                }
+            }
+        }
+        
+        log.info("ES에서 트래픽 소스 요약 조회 완료: esDocId={}, {} 개 항목", esDocId, result.size());
+        return result;
+    }
+    
+    /**
      * 사용자별 일별 인구통계 데이터 조회 (esDocId 기반)
      */
     public List<DailyDemographicsDto> findDailyDemographics(String esDocId, LocalDate startDate, LocalDate endDate) throws IOException {
@@ -629,20 +703,23 @@ public class YoutubeQueryService {
 
         JsonNode source = objectMapper.readTree(response.source().toJson().toString());
         JsonNode channelAnalytics = source.path("channel_analytics");
-        JsonNode demographics = channelAnalytics.path("demographics_analytics");
+        JsonNode demographics = channelAnalytics.path("demographics");
         
         List<DailyDemographicsDto> result = new ArrayList<>();
         
         if (demographics.isArray()) {
             for (JsonNode demo : demographics) {
                 String date = demo.path("stat_date").asText(null);
+                
                 if (date != null) {
                     try {
                         LocalDate statDate = LocalDate.parse(date);
+                        
                         // 날짜 범위 필터링
-                        if ((statDate.isEqual(startDate) || statDate.isAfter(startDate)) && 
-                            (statDate.isEqual(endDate) || statDate.isBefore(endDate))) {
-                            
+                        boolean dateInRange = (statDate.isEqual(startDate) || statDate.isAfter(startDate)) && 
+                            (statDate.isEqual(endDate) || statDate.isBefore(endDate));
+                        
+                        if (dateInRange) {
                             List<DemographicPoint> points = new ArrayList<>();
                             JsonNode demoPoints = demo.path("demographic_points");
                             
@@ -671,5 +748,24 @@ public class YoutubeQueryService {
         // 날짜 오름차순 정렬
         result.sort((a, b) -> a.getDate().compareTo(b.getDate()));
         return result;
+    }
+    
+    /**
+     * 채널에 속한 모든 영상 ID 조회
+     */
+    public List<String> findAllVideoIdsByChannel(String channelId) throws IOException {
+        // TODO: Elasticsearch Query DSL로 channelId에 해당하는 모든 영상 ID 조회
+        log.info("채널의 모든 영상 ID 조회: channelId={}", channelId);
+        return Collections.emptyList();
+    }
+    
+    /**
+     * 특정 영상의 기간 내 최신 트래픽 소스 데이터 조회
+     */
+    public List<TrafficSourceDto> findLatestTrafficSourceByVideoAndPeriod(
+            String videoId, LocalDateTime start, LocalDateTime end) throws IOException {
+        // TODO: Elasticsearch Query DSL로 videoId와 @timestamp 범위로 필터링하여 최신 문서 1개 조회
+        log.info("영상 기간 내 최신 트래픽 소스 조회: videoId={}, 기간={} ~ {}", videoId, start, end);
+        return Collections.emptyList();
     }
 }

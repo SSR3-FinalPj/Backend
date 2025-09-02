@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.youtube.DailyDemographicsDto;
 import org.example.ssj3pj.dto.request.PeriodRequest;
+import org.example.ssj3pj.dto.youtube.TrafficSourceDto;
 import org.example.ssj3pj.dto.youtube.TrafficSourceCategoryDto;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.UsersRepository;
@@ -93,4 +94,40 @@ public class YoutubeAnalyticsController {
             return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", "Internal Server Error"));
         }
     }
+
+    @PostMapping("/traffic-source-summary")
+    public ResponseEntity<?> trafficSourceSummaryByPeriod(Principal principal, @RequestBody PeriodRequest req) {
+        try {
+            LocalDate startDate = LocalDate.parse(req.getStartDate());
+            LocalDate endDate = LocalDate.parse(req.getEndDate());
+            log.info("기간별 traffic-source-summary: {} ~ {} by user: {}", startDate, endDate, principal.getName());
+
+            // 1. 사용자 인증 및 조회
+            String username = principal.getName();
+            Users user = usersRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+            // 2~4. 기간별 YoutubeMetadata 조회 → ES 검색 → 집계 처리
+            List<TrafficSourceDto> data = service.trafficSourceSummaryByPeriod(user, startDate, endDate);
+            
+            log.info("기간별 traffic-source-summary 성공: user={}, 기간={} ~ {}, categories={}", 
+                    username, startDate, endDate, data.size());
+            
+            return ResponseEntity.ok(Map.of("status", 200, "message", "성공", "data", data));
+            
+        } catch (DateTimeParseException e) {
+            log.warn("기간별 traffic-source-summary 날짜 형식 오류: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("status", 400, "message", "날짜 형식 오류 (YYYY-MM-DD)"));
+        } catch (IllegalArgumentException e) {
+            log.warn("기간별 traffic-source-summary 입력 오류: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("status", 400, "message", e.getMessage()));
+        } catch (RuntimeException e) {
+            log.error("기간별 traffic-source-summary 비지니스 로직 오류", e);
+            return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", e.getMessage()));
+        } catch (Exception e) {
+            log.error("기간별 traffic-source-summary 예상치 못한 오류", e);
+            return ResponseEntity.internalServerError().body(Map.of("status", 500, "message", "Internal Server Error"));
+        }
+    }
+    
 }
