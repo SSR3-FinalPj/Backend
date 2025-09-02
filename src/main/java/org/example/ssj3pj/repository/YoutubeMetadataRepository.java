@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface YoutubeMetadataRepository extends JpaRepository<YoutubeMetadata, Long> {
@@ -16,5 +17,6 @@ public interface YoutubeMetadataRepository extends JpaRepository<YoutubeMetadata
             LocalDateTime start,
             LocalDateTime  end
     );
+    Optional<YoutubeMetadata> findFirstByUserAndIndexedAtBeforeOrderByIndexedAtDesc(Users user, LocalDateTime dateTime);
     Optional<YoutubeMetadata> findFirstByUserAndChannelIdOrderByIndexedAtDesc(Users user, String channelId);
 }
