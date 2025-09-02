@@ -12,7 +12,11 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 import software.amazon.awssdk.services.sts.StsClient;
 import software.amazon.awssdk.services.sts.model.GetCallerIdentityResponse;
+import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -106,5 +110,63 @@ public class StorageService {
                 .bucket(bucket)
                 .key(key)
                 .build());
+    }
+
+    /** S3에서 임시 파일로 다운로드 (YouTube 업로드용) */
+    public Path downloadToTemporary(String resultKey) throws IOException {
+        // 임시 파일 경로 생성 (확장자 추출해서 사용)
+        String extension = getFileExtension(resultKey);
+        Path tempFile = Files.createTempFile("youtube-upload-", extension);
+
+        // 충돌 방지를 위해 먼저 생성된 빈 파일 삭제
+        Files.deleteIfExists(tempFile);
+
+        log.info("S3에서 임시 파일로 다운로드 시작: {} -> {}", resultKey, tempFile);
+        
+        try {
+            // S3Client로 직접 다운로드 (Presigned URL 문제 우회)
+            software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest =
+                software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(resultKey)
+                    .build();
+
+            // S3에서 파일을 직접 임시 파일에 다운로드
+            software.amazon.awssdk.services.s3.model.GetObjectResponse response =
+                s3.getObject(getObjectRequest, tempFile);
+
+            long fileSize = Files.size(tempFile);
+            log.info("S3 파일 다운로드 완료: {} bytes", fileSize);
+            return tempFile;
+            
+        } catch (Exception e) {
+            // 임시 파일 정리
+            try {
+                Files.deleteIfExists(tempFile);
+            } catch (IOException ignored) {}
+            
+            throw new IOException("S3 파일 다운로드 실패: " + resultKey, e);
+        }
+    }
+
+    /** 임시 파일 정리 */
+    public void cleanupTemporaryFile(Path tempFile) {
+        if (tempFile != null) {
+            try {
+                Files.deleteIfExists(tempFile);
+                log.info("임시 파일 삭제 완료: {}", tempFile);
+            } catch (IOException e) {
+                log.warn("임시 파일 삭제 실패: {}", tempFile, e);
+            }
+        }
+    }
+
+    /** 파일 확장자 추출 */
+    private String getFileExtension(String key) {
+        int lastDot = key.lastIndexOf('.');
+        if (lastDot > 0 && lastDot < key.length() - 1) {
+            return key.substring(lastDot);
+        }
+        return ".mp4"; // 기본값
     }
 }

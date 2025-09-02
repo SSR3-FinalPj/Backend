@@ -22,7 +22,7 @@ public class VideoGenerationRequestDto {
     @JsonProperty("user")
     private Map<String, Object> userData;
 
-    private String purpose;
+    private String platform;
 
     private boolean isClient;
 

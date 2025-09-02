@@ -31,7 +31,7 @@ public class JobResultConsumer {
             Job job = jobRepository.findBySourceImageKey(event.getImageKey());
 
             // Delegate the logic to JobService
-            jobService.completeJob(job, event.getResultKey(), event.getResultType());
+            jobService.completeJob(job, event.getResultKey(), event.getType());
 
             log.info("Successfully processed job result for job ID: {}", job.getId());
 

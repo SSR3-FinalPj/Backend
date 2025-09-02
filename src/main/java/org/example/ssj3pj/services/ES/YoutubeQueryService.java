@@ -34,6 +34,76 @@ public class YoutubeQueryService {
 
     private static final String INDEX = "youtubedata";  // YouTube 인덱스명
 
+    public UploadRangeDto findAllVideoRangeDate(String esDocId, String channelId, LocalDate start, LocalDate end) throws IOException {
+        GetRequest request = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(request, JsonData.class);
+        if (!response.found()) {
+            throw new RuntimeException("❌ ES 문서 없음 (youtube): " + esDocId);
+        }
+
+        // 2. JsonNode 변환
+        JsonNode src = objectMapper.readTree(response.source().toJson().toString());
+
+        JsonNode videosNode = src.path("videos");
+        List<UploadVideoDetailDto> videoItemList = new ArrayList<>();
+        long totalView = 0;
+        long totalLike = 0;
+        long totalComment = 0;
+        long totalVideoCount = 0;
+        for (JsonNode videoNode : videosNode) {
+            String uploadDateStr = videoNode.path("upload_date").asText();
+            if (uploadDateStr == null || uploadDateStr.isEmpty()) continue;
+
+            // upload_date 파싱
+            LocalDate uploadDate = LocalDate.parse(uploadDateStr.substring(0, 10)); // yyyy-MM-dd 부분만 추출
+
+            // 전달받은 기간 안에 포함된 영상만 처리
+            if ((uploadDate.isEqual(start) || uploadDate.isAfter(start)) &&
+                    (uploadDate.isEqual(end)   || uploadDate.isBefore(end))) {
+
+                log.info("✅ 기간 포함 영상: {} ({})", videoNode.path("title").asText(), uploadDateStr);
+
+                int viewCount = videoNode.path("view_count").asInt(0);
+                int likeCount = videoNode.path("like_count").asInt(0);
+                int commentCount = videoNode.path("comment_count").asInt(0);
+
+                // 영상 DTO 추가
+                UploadVideoDetailDto videoItem = UploadVideoDetailDto.builder()
+                        .title(videoNode.path("title").asText(null))
+                        .description(videoNode.path("description").asText(null))
+                        .channelTitle(videoNode.path("channel_title").asText(null))
+                        .uploadDate(uploadDateStr)
+                        .viewCount(viewCount)
+                        .likeCount(likeCount)
+                        .commentCount(commentCount)
+                        .build();
+                videoItemList.add(videoItem);
+
+                // 총합 업데이트
+                totalView += viewCount;
+                totalLike += likeCount;
+                totalComment += commentCount;
+                totalVideoCount++;
+            }
+        }
+        // 합산 DTO
+        DashboardTotalStats totalStats = DashboardTotalStats.builder()
+                .totalVideoCount(totalVideoCount)
+                .totalViewCount(totalView)
+                .totalLikeCount(totalLike)
+                .totalCommentCount(totalComment)
+                .build();
+
+        // 최종 반환 DTO
+        return UploadRangeDto.builder()
+                .total(totalStats)
+                .videos(videoItemList)
+                .build();
+    }
     public YoutubeSummaryDto getSummaryByDocId(String esDocId) {
         try {
             // 1. ES에서 문서 가져오기

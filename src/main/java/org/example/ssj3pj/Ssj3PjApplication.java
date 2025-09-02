@@ -13,5 +13,4 @@ public class Ssj3PjApplication {
     public static void main(String[] args) {
         SpringApplication.run(Ssj3PjApplication.class, args);
     }
-
 }

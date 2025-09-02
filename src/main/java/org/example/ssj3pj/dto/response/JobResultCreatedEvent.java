@@ -14,7 +14,7 @@ public class JobResultCreatedEvent {
     private String prompt;    // 프롬프트 원문 (수정되면 덮어씀)
     //    private String videoId;   // 고유 영상 ID
     private String resultKey;     // 영상 경로(EFS 내부 경로든 URL이든)
-    private String resultType;
+    private String type;
     private String status;    // PENDING/RUNNING/COMPLETED/FAILED (없으면 COMPLETED로 처리)
     private String message;   // 완료/오류 메시지
     private Timestamp createdAt;

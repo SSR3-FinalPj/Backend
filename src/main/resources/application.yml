@@ -4,15 +4,21 @@ server:
       cookie:
         name: SID
         http-only: true
-        secure: false        # 로컬 http로 테스트면 일시적으로 false로
-        same-site: Lax      # 도커라이징할 때 none으로
+        secure: false        # 로컬 http로 테스트면 false, 운영 배포시 true 권장
+        same-site: Lax       # 도커라이징할 때는 none 권장
 
 jwt:
   issuer: ssj3pj
-  secret: mySecretKey1234567890123456789012345678901234567890
+  secret: ${JWT_SECRET:mySecretKey1234567890123456789012345678901234567890}
   access-token-expiration: 900000        # 15분 (ms)
   refresh-token-expiration: 1209600000   # 14일 (ms)
 
+# 배포시 이거로 수정
+#spring:
+#  datasource:
+#    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:youtube_db}
+#    username: ${DB_USER:postgres}
+#    password: ${DB_PASS:pass1234}
 
 spring:
   datasource:
@@ -20,7 +26,6 @@ spring:
     username: postgres
     password: pass1234
     driver-class-name: org.postgresql.Driver
-
 
   jpa:
     hibernate:
@@ -34,13 +39,15 @@ spring:
 
   elasticsearch:
     uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
     elasticsearch:
       repositories:
         enabled: true
+
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -66,15 +73,16 @@ spring:
       raw: citydata
       googleAccessToken: googleToken
       raw2: youtubedata
+      raw3: redditdata
 
 youtube:
   upload:
     chunk-size-bytes: 8388608    # 8MB
     connect-timeout-ms: 10000    # 10s
-    read-timeout-ms: 600000      # 10m (대용량 업로드 대비)
+    read-timeout-ms: 600000      # 10m
 
-
-
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 springdoc:
   swagger-ui:
@@ -85,8 +93,6 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
-
-  # 도메인별 인덱스 이름만 분리
 app:
   es:
     indices:
@@ -96,17 +102,14 @@ app:
 
 prompt:
   server:
-    base: ${AI_VIDEO_SERVER_URL:http://127.0.0.1:8001}
-    path: ${AI_VIDEO_PROMPT_PATH:/api/generate-prompts}
+    base: ${BRIDGE_BASE_URL:http://127.0.0.1:8001}
     bridge.connect-timeout-ms: 5000
-    bridge.read-timeout-ms: 10000 # ← 경로를 변수로
-
-
+    bridge.read-timeout-ms: 10000
 
 google:
-  client-id: 500134374276-9gt50jh883gppicv571hifvbtqp9h735.apps.googleusercontent.com
+  client-id: ${YOUR_CLIENT_ID}
   client-secret: ${YOUR_CLIENT_SECRET}
-  redirect-uri: http://localhost:8080/api/google/callback
+  redirect-uri: ${GOOGLE_REDIRECT_URL:http://localhost:8080/api/google/callback}
   token-uri: https://oauth2.googleapis.com/token
   skew-seconds: 120
 
@@ -118,18 +121,16 @@ reddit:
   token-url: https://www.reddit.com/api/v1/access_token
   api-base: https://oauth.reddit.com
   redirect-uri: ${REDDIT_REDIRECT_URI:http://localhost:8080/api/reddit/callback}
-  scopes: identity read submit
+  scopes: identity edit history flair mysubreddits privatemessages read report save submit subscribe vote
 
 security:
   oauth:
-    state-ttl-seconds: 600                     # google state 변수 유효시간(10분)
+    state-ttl-seconds: 600   # google state 변수 유효시간(10분)
 
 aws:
-  region: us-east-2
-  # 아래 3개는 선택(환경변수가 우선이므로 비워도 됨)
-  access-key-id: ${AWS-ACCESS-KEY}
-  secret-access-key: ${AWS-SECRET}
-
+  region: ${AWS_REGION}
+  access_key_id: ${AWS_ACCESS_KEY_ID}
+  secret_access_key: ${AWS_SECRET_ACCESS_KEY}
   s3:
     bucket: ssr-ai-video
   presign:
@@ -139,7 +140,6 @@ sse:
   reconnect-millis: 3000
   heartbeat-millis: 25000
   auth:
-    query-param: sse_token   # EventSource에 붙일 쿼리 토큰 이름
+    query-param: sse_token
   dev:
-    allow-userid-param: false  # 로컬에서만 true로 잠깐 켜서 ?userId= 테스트하고, 운영은 false
-
+    allow-userid-param: false
