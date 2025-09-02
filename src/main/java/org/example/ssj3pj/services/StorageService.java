@@ -19,9 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.util.Locale;
-import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -36,11 +34,6 @@ public class StorageService {
 
     @Value("${aws.presign.ttl-minutes:15}")
     private long ttlMinutes;
-
-    /** 비디오 키 규칙 */
-    public String videoKey(String videoId) {
-        return "videos/" + "/master.mp4";
-    }
 
     /** 업로드용 Presigned PUT URL */
     public String presignPut(String key, String contentType) {

@@ -38,7 +38,7 @@ public class JobController {
     private final JwtUtils jwtUtils;
 
     // Request DTOs
-    public record CreateJobRequest(@NotBlank String key, @NotBlank String locationCode, String prompt_text) {}
+    public record CreateJobRequest(@NotBlank String key, @NotBlank String locationCode, String prompt_text,  @NotBlank String platform) {}
 
     // Response DTOs
     public record CreateJobResponse(Long jobId, String status, String sourceImageKey, String promptText) {}
@@ -53,7 +53,7 @@ public class JobController {
         try {
             storage.head(req.key());
 
-            Job job = jobService.createJobAndProcess(pureKey, req.locationCode(), "video", userName, req.prompt_text());
+            Job job = jobService.createJobAndProcess(pureKey, req.locationCode(), req.platform(), userName, req.prompt_text());
 
             CreateJobResponse response = new CreateJobResponse(job.getId(), job.getStatus(), job.getSourceImageKey(),job.getPromptText());
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
