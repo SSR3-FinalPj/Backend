@@ -25,11 +25,18 @@ public class InitUserConfig {
     public CommandLineRunner initUserAndSampleVideo() {
         return args -> {
             // 1) 유저 생성 (없으면 추가)
-            Users user = usersRepository.findByUsername("testuser")
+            Users user1 = usersRepository.findByUsername("testuser")
                     .orElseGet(() -> usersRepository.save(
                             Users.builder()
                                     .username("testuser")
                                     .passwordHash(passwordEncoder.encode("test1234"))
+                                    .build()
+                    ));
+            Users user2 = usersRepository.findByUsername("testuser2")
+                    .orElseGet(() -> usersRepository.save(
+                            Users.builder()
+                                    .username("testuser2")
+                                    .passwordHash(passwordEncoder.encode("test2"))
                                     .build()
                     ));
 

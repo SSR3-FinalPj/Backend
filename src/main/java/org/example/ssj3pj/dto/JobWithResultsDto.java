@@ -25,7 +25,7 @@ public class JobWithResultsDto {
     private String status;
 
     /** 작업 목적 */
-    private String purpose;
+    private String platform;
 
     /** 위치 코드 */
     private String locationCode;
@@ -54,7 +54,7 @@ public class JobWithResultsDto {
         return JobWithResultsDto.builder()
                 .jobId(job.getId())
                 .status(job.getStatus())
-                .purpose(job.getPurpose())
+                .platform(job.getPlatform())
                 .locationCode(job.getLocationCode())
                 .promptText(job.getPromptText())
                 .sourceImageKey(job.getSourceImageKey())

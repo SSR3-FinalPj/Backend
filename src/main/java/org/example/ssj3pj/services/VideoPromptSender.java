@@ -46,7 +46,7 @@ public class VideoPromptSender {
                 .userId(String.valueOf(userId)) // Convert Long to String
                 .promptText(promptText)
                 .isClient(isClient)
-                .purpose("youtube")
+                .platform("youtube")
                 .weatherData(weatherData)
                 .userData(Map.of())
                 .build();
