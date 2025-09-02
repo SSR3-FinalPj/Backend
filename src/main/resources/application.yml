@@ -13,6 +13,13 @@ jwt:
   access-token-expiration: 900000        # 15분 (ms)
   refresh-token-expiration: 1209600000   # 14일 (ms)
 
+# 배포시 이거로 수정
+#spring:
+#  datasource:
+#    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:youtube_db}
+#    username: ${DB_USER:postgres}
+#    password: ${DB_PASS:pass1234}
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/youtube_db
@@ -121,10 +128,9 @@ security:
     state-ttl-seconds: 600   # google state 변수 유효시간(10분)
 
 aws:
-  region: us-east-2
-  # 환경변수가 우선, 비워도 됨
-  access-key-id: ${AWS-ACCESS-KEY}
-  secret-access-key: ${AWS-SECRET}
+  region: ${AWS_REGION}
+  access_key_id: ${AWS_ACCESS_KEY_ID}
+  secret_access_key: ${AWS_SECRET_ACCESS_KEY}
   s3:
     bucket: ssr-ai-video
   presign:
