@@ -25,7 +25,7 @@ public class JobResultDto {
     private String status;
 
     /** 결과 타입 */
-    private String resultType;
+    private String type;
 
     /** S3 결과 키 */
     private String resultKey;
@@ -42,7 +42,7 @@ public class JobResultDto {
                 .resultId(jobResult.getId())
                 .jobId(jobResult.getJob().getId())
                 .status(jobResult.getStatus())
-                .resultType(jobResult.getResultType())
+                .type(jobResult.getType())
                 .resultKey(jobResult.getResultKey())
                 .promptText(jobResult.getPrompt())
                 .createdAt(jobResult.getCreatedAt())

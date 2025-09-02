@@ -29,8 +29,8 @@ public class JobResult {
     @Column(name = "status", length = 20, nullable = false)
     private String status = "PENDING"; // pending, processing, completed, failed
 
-    @Column(name = "result_type", length = 20, nullable = false)
-    private String resultType; // image, video 등
+    @Column(name = "type", length = 20, nullable = false)
+    private String type; // image, video 등
 
     @Column(name = "result_key", length = 500, nullable = false, unique = true)
     private String resultKey; // S3 key
