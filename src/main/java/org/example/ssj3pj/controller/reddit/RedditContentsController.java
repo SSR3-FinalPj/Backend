@@ -69,7 +69,7 @@ public class RedditContentsController {
         String username = principal.getName();
 
         try {
-            JsonNode aiResponse = contentsService.analyzeComments(request.getVideoId(), username);
+            JsonNode aiResponse = contentsService.analyzeRDComments(request.getVideoId(), username);
             return ResponseEntity.ok(aiResponse); // FE에 그대로 전달
         } catch (Exception e) {
             log.error("댓글 분석 요청 실패: videoId={}", request.getVideoId(), e);
