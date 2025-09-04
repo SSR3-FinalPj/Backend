@@ -43,7 +43,92 @@ public class RedditQueryService {
         JsonNode urlNode = postNode.path("media").path("reddit_video").path("fallback_url");
         return urlNode.isMissingNode() || urlNode.isNull() ? null : urlNode.asText(null);
     }
+    public DashboardRDTotalStats findAllStat(String esDocId) throws IOException{
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
 
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode postsNode = source.path("posts");
+        long ups_count = 0;
+        double upvote_ratio = 0.0;
+        long comment_count = 0;
+        for (JsonNode videoNode : postsNode) {
+            upvote_ratio += videoNode.path("upvote_ratio").asDouble(1);
+            comment_count += videoNode.path("num_comments").asLong(0);
+            ups_count += videoNode.path("ups").asLong(0);
+        }
+        double ratio = upvote_ratio / source.path("post_count").asLong();
+        double roundedRatio = Math.round(ratio * 100.0) / 100.0; // 소수점 둘째자리까지
+        return DashboardRDTotalStats.builder()
+                .totalPostCount(source.path("post_count").asLong())
+                .totalUpvoteRatio(roundedRatio)
+                .totalUpvoteCount(ups_count)
+                .totalCommentCount(comment_count)
+                .build();
+    }
+
+    public DashboardRDDayStats findDayStatForChannel(String esDocId, LocalDate date) throws IOException {
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+
+        // source를 JsonNode로 파싱
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode postsNode = source.path("posts");
+        long ups_count = 0;
+        double upvote_ratio = 0.0;
+        long comment_count = 0;
+        for (JsonNode videoNode : postsNode) {
+            upvote_ratio += videoNode.path("upvote_ratio").asDouble(1);
+            comment_count += videoNode.path("num_comments").asLong(0);
+            ups_count += videoNode.path("ups").asLong(0);
+        }
+        double ratio = upvote_ratio / source.path("post_count").asLong();
+        double roundedRatio = Math.round(ratio * 100.0) / 100.0; // 소수점 둘째자리까지
+
+        return DashboardRDDayStats.builder()
+                .date(date)  // Service에서 받은 날짜 문자열
+                .upvoteRatio(roundedRatio)
+                .commentCount(comment_count)
+                .postCount(source.path("post_count").asLong())
+                .upvoteCount(ups_count)
+                .build();
+    }
+    public ChannelInfoDto findChannel(String esDocId) throws IOException{
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        String channelTitle = source.path("reddit_username").asText();
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+        return ChannelInfoDto.builder()
+                .channelId(channelTitle)
+                .channelTitle(channelTitle)
+                .build();
+    }
     public RDUploadRangeDto findAllPostRangeDate(String esDocId, String channelId, LocalDate start, LocalDate end) throws IOException {
         GetRequest request = new GetRequest.Builder()
                 .index(INDEX)
