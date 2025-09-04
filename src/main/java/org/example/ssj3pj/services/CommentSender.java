@@ -29,10 +29,10 @@ public class CommentSender {
     @Value("${prompt.server.base}")
     private String bridgeBaseUrl;
 
-    public JsonNode sendCommentsToAi(JsonNode youtubeComments) {
+    public JsonNode sendCommentsToAi(JsonNode Comments) {
         try {
             // youtubeComments는 이미 { "videoId": "...", "comments": [...] } 형태
-            Map<String, Object> youtubeMap = objectMapper.convertValue(youtubeComments, new TypeReference<>() {});
+            Map<String, Object> youtubeMap = objectMapper.convertValue(Comments, new TypeReference<>() {});
 
             CommentAnalysisRequest requestDto = CommentAnalysisRequest.builder()
                     .youtube(youtubeMap)

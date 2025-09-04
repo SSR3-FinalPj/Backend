@@ -399,10 +399,8 @@ public class YoutubeQueryService {
                     youtubeNode.put("videoId", videoId);
                     youtubeNode.set("comments", commentsArray);
 
-                    ObjectNode result = objectMapper.createObjectNode();
-                    result.set("youtube", youtubeNode);
 
-                    return result; // ✅ 원하는 JSON 구조 반환
+                    return youtubeNode; // ✅ 원하는 JSON 구조 반환
                 }
             }
         }
