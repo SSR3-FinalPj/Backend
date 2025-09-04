@@ -56,7 +56,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ needs.ci.outputs.IMAGE_TAG }}
         with:
-          cmd: yq eval -i '.image.tag = env(IMAGE_TAG)' 'values.yaml'
+          cmd: yq eval -i '.image.tag = env(IMAGE_TAG)' './backend/values.yaml'
           # YAML 파일을 편집하는 CLI 도구
           # ai_value.yaml 안의 image.tag를 IMAGE_TAG 값으로 변경
       - name: Commit manifest changes
@@ -65,7 +65,7 @@ jobs:
         run: |
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
-          git add values.yaml
+          git add ./backend/values.yaml
           git commit -m "ci: update backend image tag to $IMAGE_TAG" || echo "No changes to commit"
 
       - name: Push commit
