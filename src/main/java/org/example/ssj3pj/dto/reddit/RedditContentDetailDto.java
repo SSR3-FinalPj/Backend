@@ -31,4 +31,6 @@ public class RedditContentDetailDto {
     @JsonProperty("comment_count")
     private Integer commentCount;
     private String url;
+    @JsonProperty("rd_video_url")
+    private String RDvideoUrl;
 }
