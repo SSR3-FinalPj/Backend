@@ -68,7 +68,7 @@ public class ContentsService {
                 .set("comments", videoComments);
 
         // 5. AI 서버에 요청 → 응답 JsonNode 반환
-        return commentSender.sendCommentsToAi(videoComments);
+        return commentSender.sendCommentsToAi(videoComments, "youtube");
     }
 
     public YoutubeContentDetailDto getContentDetailByVideoId(String videoId, String username) {
@@ -126,7 +126,7 @@ public class ContentsService {
 //                .set("comments", postComments);
 
         // 5. AI 서버에 요청 → 응답 JsonNode 반환
-        return commentSender.sendCommentsToAi(postComments);
+        return commentSender.sendCommentsToAi(postComments, "reddit");
     }
     /**
      * ES Map 소스를 API 명세에 맞는 YoutubeContentDetailDto로 변환합니다.

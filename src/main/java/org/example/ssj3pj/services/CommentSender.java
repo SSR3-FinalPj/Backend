@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,13 +30,21 @@ public class CommentSender {
     @Value("${prompt.server.base}")
     private String bridgeBaseUrl;
 
-    public JsonNode sendCommentsToAi(JsonNode Comments) {
+    public JsonNode sendCommentsToAi(JsonNode Comments, String purpose) {
         try {
+            Map<String, Object> youtubeMap = new HashMap<>();
+            Map<String, Object> redditMap = new HashMap<>();
             // youtubeComments는 이미 { "videoId": "...", "comments": [...] } 형태
-            Map<String, Object> youtubeMap = objectMapper.convertValue(Comments, new TypeReference<>() {});
+            if(purpose == "youtube"){
+                youtubeMap = objectMapper.convertValue(Comments, new TypeReference<>() {});
+            } else if (purpose == "reddit") {
+                redditMap = objectMapper.convertValue(Comments, new TypeReference<>() {});
+            }
+
 
             CommentAnalysisRequest requestDto = CommentAnalysisRequest.builder()
                     .youtube(youtubeMap)
+                    .reddit(redditMap)
                     .build();
 
             String url = bridgeBaseUrl + "/api/comments";
