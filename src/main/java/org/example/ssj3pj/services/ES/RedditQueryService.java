@@ -331,8 +331,8 @@ public class RedditQueryService {
                 .build();
     }
 
-    public JsonNode findAllCommentsForVideo(String esDocId, String videoId) throws IOException {
-        log.info("Fetching comments for esDocId: {} and videoId: {}", esDocId, videoId);
+    public JsonNode findAllCommentsForPost(String esDocId, String postId) throws IOException {
+        log.info("Fetching comments for esDocId: {} and postId: {}", esDocId, postId);
 
         GetRequest getRequest = new GetRequest.Builder()
                 .index(INDEX)
@@ -347,46 +347,52 @@ public class RedditQueryService {
         }
 
         JsonNode source = objectMapper.readTree(response.source().toJson().toString());
-        JsonNode videosNode = source.path("videos");
+        JsonNode postsNode = source.path("posts");
 
-        if (!videosNode.isArray()) {
-            log.warn("The 'videos' field is not an array in document id: {}", esDocId);
+        if (!postsNode.isArray()) {
+            log.warn("The 'posts' field is not an array in document id: {}", esDocId);
             return objectMapper.createObjectNode();
         }
 
-        for (JsonNode videoNode : videosNode) {
-            if (videoId.equals(videoNode.path("video_id").asText())) {
-                JsonNode commentsNode = videoNode.path("comments");
+        for (JsonNode postNode : postsNode) {
+            if (postId.equals(postNode.path("id").asText())) {
+                JsonNode commentsNode = postNode.path("parsed_comments");
                 log.info("commentsNode raw: {}", commentsNode.toPrettyString());
 
                 if (commentsNode.isArray()) {
                     ArrayNode commentsArray = objectMapper.createArrayNode();
 
                     for (JsonNode commentNode : commentsNode) {
+                        double createdValue = commentNode.path("created").asDouble(); // 1754636569.0
+                        long epochSeconds = (long) createdValue;
+
+                        LocalDate date = Instant.ofEpochSecond(epochSeconds)
+                                .atZone(ZoneId.systemDefault())  // 원하는 타임존 적용
+                                .toLocalDate();
                         ObjectNode newComment = objectMapper.createObjectNode();
-                        newComment.put("comment_id", commentNode.path("comment_id").asText());
+                        newComment.put("comment_id", commentNode.path("id").asText());
                         newComment.put("author", commentNode.path("author").asText());
-                        newComment.put("comment", commentNode.path("text").asText()); // ✅ text → comment
-                        newComment.put("like_count", commentNode.path("like_count").asInt());
-                        newComment.put("total_reply_count", commentNode.path("reply_count").asInt());
-                        newComment.put("published_at", commentNode.path("published_at").asText());
+                        newComment.put("comment", commentNode.path("body").asText()); // ✅ text → comment
+                        newComment.put("like_count", commentNode.path("score").asInt());
+                        newComment.put("total_reply_count", commentNode.path("parsed_replies").size());
+                        newComment.put("published_at", String.valueOf(date));
 
                         commentsArray.add(newComment);
                     }
 
                     ObjectNode redditNode = objectMapper.createObjectNode();
-                    redditNode.put("videoId", videoId);
+                    redditNode.put("postId", postId);
                     redditNode.set("comments", commentsArray);
 
                     ObjectNode result = objectMapper.createObjectNode();
-                    result.set("youtube", redditNode);
+                    result.set("reddit", redditNode);
 
                     return result; // ✅ 원하는 JSON 구조 반환
                 }
             }
         }
 
-        log.warn("No video found with videoId: {} in document id: {}", videoId, esDocId);
+        log.warn("No post found with postId: {} in document id: {}", postId, esDocId);
         return objectMapper.createObjectNode();
     }
 

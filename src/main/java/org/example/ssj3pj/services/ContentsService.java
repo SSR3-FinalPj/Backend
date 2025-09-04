@@ -102,7 +102,32 @@ public class ContentsService {
 
         return videoDetail;
     }
+    public JsonNode analyzeRDComments(String postId, String username) throws IOException {
+        // 1. Find user by username
+        Users user = usersRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
+        // 2. Find the most recent es_doc_id for the user
+        RedditMetadata metadata = redditMetadataRepository.findFirstByUserOrderByIndexedAtDesc(user)
+                .orElseThrow(() -> new RuntimeException("Reddit metadata not found for user: " + username));
+        String esDocId = metadata.getEsDocId();
+
+        // 3. Fetch all comments for the specific video from the ES document
+        JsonNode postComments = redditQueryService.findAllCommentsForPost(esDocId, postId);
+
+        if (postComments == null || postComments.isEmpty()) {
+            log.warn("No comments found for postId: {} in docId: {}. Nothing to analyze.", postId, esDocId);
+            return objectMapper.createObjectNode(); // 빈 JSON 리턴
+        }
+
+        // 4. Wrap videoId and comments into youtube node
+        JsonNode youtubeNode = objectMapper.createObjectNode()
+                .put("postId", postId)
+                .set("comments", postComments);
+
+        // 5. AI 서버에 요청 → 응답 JsonNode 반환
+        return commentSender.sendCommentsToAi(youtubeNode);
+    }
     /**
      * ES Map 소스를 API 명세에 맞는 YoutubeContentDetailDto로 변환합니다.
      */
