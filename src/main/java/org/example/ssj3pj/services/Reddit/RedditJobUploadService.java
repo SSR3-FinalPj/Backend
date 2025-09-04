@@ -54,11 +54,13 @@ public class RedditJobUploadService {
             tempImageFile = storageService.downloadToTemporary(jobResult.getResultKey());
 
             // 3. Reddit 업로드 실행
-            String redditResponse = redditUploadService.uploadImagePost(
+            String redditResponse = redditUploadService.uploadMediaPost(
                     userId,
                     request.getSubreddit(),
                     request.getTitle(),
-                    tempImageFile.toFile()
+                    tempImageFile.toFile(),
+                    jobResult.getType()
+
             );
 
             // 4. 업로드 결과 파싱
