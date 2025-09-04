@@ -38,6 +38,12 @@ public class JobResult {
     @Column(name = "prompt", columnDefinition = "TEXT")
     private String prompt;
 
+    @Column(name = "yt_upload", length = 50, unique = true)
+    private String ytUpload;
+
+    @Column(name = "rd_upload", length = 50, unique = true)
+    private String rdUpload;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

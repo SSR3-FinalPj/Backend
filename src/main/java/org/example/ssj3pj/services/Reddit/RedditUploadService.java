@@ -1,5 +1,7 @@
 package org.example.ssj3pj.services.Reddit;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,31 +25,42 @@ public class RedditUploadService {
     @Qualifier("redditRestTemplate") // ✅ config에서 만든 redditRestTemplate bean 사용
     private final RestTemplate restTemplate;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
-     * Reddit에 이미지 업로드 + 포스트 등록
-     * @param userId Reddit 토큰 관리용 유저 ID
+     * Reddit에 미디어 업로드 (이미지/비디오)
+     * @param userId   Reddit 토큰 관리용 유저 ID
      * @param subreddit 게시할 서브레딧
-     * @param title 게시글 제목
-     * @param imageFile 업로드할 이미지 파일
-     * @return Reddit API 응답 JSON (문자열)
+     * @param title    게시글 제목
+     * @param mediaFile 업로드할 파일 (이미지 or 비디오)
+     * @param kind     "image" 또는 "video"
+     * @return Reddit postId
      */
-    public String uploadImagePost(Long userId, String subreddit, String title, File imageFile) {
+    public String uploadMediaPost(Long userId, String subreddit, String title, File mediaFile, String kind) {
+        if (!"image".equalsIgnoreCase(kind) && !"video".equalsIgnoreCase(kind)) {
+            throw new IllegalArgumentException("지원하지 않는 kind 값: " + kind);
+        }
+
         String accessToken = tokenGuard.getValidAccessToken(userId);
 
-        // 1. 이미지 업로드 (asset.json)
-        String assetId = uploadImage(accessToken, imageFile);
+        // 1. 파일 업로드 (asset.json)
+        String assetId = uploadAsset(accessToken, mediaFile);
 
         // 2. 포스트 등록 (submit)
-        return submitPost(accessToken, subreddit, title, assetId);
+        String response = submitPost(accessToken, subreddit, title, assetId, kind);
+
+        // 3. 응답에서 postId 추출
+        return extractPostIdFromResponse(response);
     }
 
-    private String uploadImage(String accessToken, File imageFile) {
+    /** Reddit asset 업로드 */
+    private String uploadAsset(String accessToken, File mediaFile) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", new FileSystemResource(imageFile));
+        body.add("file", new FileSystemResource(mediaFile));
 
         HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
 
@@ -57,21 +70,22 @@ public class RedditUploadService {
                 Map.class
         );
 
-        log.info("Reddit image upload response={}", response);
+        log.info("Reddit asset upload response={}", response);
 
         return (String) ((Map<?, ?>) response.get("args")).get("asset_id");
     }
 
-    private String submitPost(String accessToken, String subreddit, String title, String assetId) {
+    /** Reddit submit API 호출 */
+    private String submitPost(String accessToken, String subreddit, String title, String assetId, String kind) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("sr", subreddit);
-        body.add("kind", "image");
+        body.add("kind", kind); // image or video
         body.add("title", title);
-        body.add("url", "https://preview.redd.it/" + assetId + ".png");
+        body.add("url", "https://preview.redd.it/" + assetId);
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -81,7 +95,23 @@ public class RedditUploadService {
                 String.class
         );
 
-        log.info("Reddit post submit response={}", response);
+        log.info("Reddit submit response={}", response);
         return response;
+    }
+
+    /** Reddit API 응답에서 postId 추출 */
+    private String extractPostIdFromResponse(String redditResponse) {
+        try {
+            JsonNode jsonNode = objectMapper.readTree(redditResponse);
+            String postId = jsonNode.path("json").path("data").path("id").asText();
+
+            if (postId == null || postId.isEmpty()) {
+                throw new RuntimeException("Reddit 응답에서 postId를 찾을 수 없습니다: " + redditResponse);
+            }
+
+            return postId;
+        } catch (Exception e) {
+            throw new RuntimeException("Reddit 응답 파싱 실패", e);
+        }
     }
 }
