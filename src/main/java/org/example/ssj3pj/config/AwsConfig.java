@@ -23,8 +23,6 @@ public class AwsConfig {
     @Bean
     public AwsCredentialsProvider awsCreds() {
         AwsCredentialsProvider provider = DefaultCredentialsProvider.create();
-        var creds = provider.resolveCredentials();
-        System.out.println(">>> Using AWS creds: " + creds.accessKeyId());
         return provider;
     }
 
