@@ -36,7 +36,7 @@ public class RedditUploadService {
      * @param kind     "image" 또는 "video"
      * @return Reddit postId
      */
-    public String uploadMediaPost(Long userId, String subreddit, String title, File mediaFile, String kind) {
+        public String uploadMediaPost(Long userId, String subreddit, String title, File mediaFile, String kind) {
         if (!"image".equalsIgnoreCase(kind) && !"video".equalsIgnoreCase(kind)) {
             throw new IllegalArgumentException("지원하지 않는 kind 값: " + kind);
         }
@@ -53,11 +53,11 @@ public class RedditUploadService {
         return extractPostIdFromResponse(response);
     }
 
-    /** Reddit asset 업로드 */
     private String uploadAsset(String accessToken, File mediaFile) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("User-Agent", "ssj3pj/1.0 by u/your_reddit_username");
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("file", new FileSystemResource(mediaFile));
@@ -72,20 +72,21 @@ public class RedditUploadService {
 
         log.info("Reddit asset upload response={}", response);
 
-        return (String) ((Map<?, ?>) response.get("args")).get("asset_id");
+        Map<String, Object> args = (Map<String, Object>) response.get("args");
+        return (String) args.get("asset_url"); // ✅ URL 반환
     }
 
-    /** Reddit submit API 호출 */
-    private String submitPost(String accessToken, String subreddit, String title, String assetId, String kind) {
+    private String submitPost(String accessToken, String subreddit, String title, String assetUrl, String kind) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("User-Agent", "ssj3pj/1.0 by u/your_reddit_username"); // ✅ 추가
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("sr", subreddit);
-        body.add("kind", kind); // image or video
+        body.add("kind", kind);
         body.add("title", title);
-        body.add("url", "https://preview.redd.it/" + assetId);
+        body.add("url", assetUrl); // ✅ Reddit이 준 URL 사용
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -98,6 +99,7 @@ public class RedditUploadService {
         log.info("Reddit submit response={}", response);
         return response;
     }
+
 
     /** Reddit API 응답에서 postId 추출 */
     private String extractPostIdFromResponse(String redditResponse) {
