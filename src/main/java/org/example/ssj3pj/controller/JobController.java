@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.JobResultDto;
 import org.example.ssj3pj.dto.JobWithResultsDto;
+import org.example.ssj3pj.dto.request.CreateJobRequest;
+import org.example.ssj3pj.dto.response.CreateJobResponse;
 import org.example.ssj3pj.entity.Job;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.JobRepository;
@@ -36,12 +38,6 @@ public class JobController {
     private final UsersRepository usersRepository;
     private final JwtUtils jwtUtils;
 
-    // Request DTOs
-    public record CreateJobRequest(@NotBlank String key, @NotBlank String locationCode, String prompt_text,  @NotBlank String platform) {}
-
-    // Response DTOs
-    public record CreateJobResponse(Long jobId, String status, String sourceImageKey, String promptText) {}
-
     @PostMapping(path = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateJobResponse> createJob(@RequestBody CreateJobRequest req, HttpServletRequest request) {
         String userName = extractUserName(request);
@@ -52,9 +48,20 @@ public class JobController {
         try {
             storage.head(req.key());
 
-            Job job = jobService.createJobAndProcess(pureKey, req.locationCode(), req.platform(), userName, req.prompt_text());
+            Job job = jobService.createJobAndProcess(
+                    pureKey,
+                    req.locationCode(),
+                    req.platform(),
+                    userName,
+                    req.prompt_text()
+            );
 
-            CreateJobResponse response = new CreateJobResponse(job.getId(), job.getStatus(), job.getSourceImageKey(),job.getPromptText());
+            CreateJobResponse response = new CreateJobResponse(
+                    job.getId(),
+                    job.getStatus(),
+                    job.getSourceImageKey(),
+                    job.getPromptText()
+            );
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
 
         } catch (NoSuchKeyException e) {
