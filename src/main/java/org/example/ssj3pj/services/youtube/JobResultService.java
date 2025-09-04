@@ -18,4 +18,8 @@ public class JobResultService {
                 .map(r -> new JobResultDto(r.getId(), r.getCreatedAt()))
                 .toList();
     }
+    public List<Long> getResultIdsUploadedToBoth(Long userId) {
+        return jobResultRepository.findResultIdsUploadedToBoth(userId);
+    }
+
 }

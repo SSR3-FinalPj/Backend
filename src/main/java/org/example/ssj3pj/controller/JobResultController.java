@@ -12,7 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
-//
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
@@ -20,7 +19,7 @@ public class JobResultController {
 
     private final JwtUtils jwtUtils;
     private final JobResultService jobResultService;
-    @Tag(name = "dashboard", description = "대쉬보드")
+    @Tag(name = "dashboard", description = "생성한 미디어 전체")
     @GetMapping("/result_id")
     public List<JobResultDto> getMyJobResults(HttpServletRequest request) {
         String auth = request.getHeader("Authorization");
@@ -32,11 +31,31 @@ public class JobResultController {
 
         Long userId;
         try {
-            userId = Long.valueOf(jwtUtils.getUidAsLong(token));
+            userId = jwtUtils.getUidAsLong(token);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid token");
         }
 
         return jobResultService.getUserJobResults(userId);
+    }
+
+
+    @Tag(name = "dashboard", description = "YouTube+Reddit 업로드 완료된 result_id 조회")
+    @GetMapping("/result_id/both")
+    public List<Long> getResultIdsUploadedToBoth(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth == null || !auth.startsWith("Bearer ")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "missing bearer token");
+        }
+
+        String token = auth.substring(7);
+        Long userId;
+        try {
+            userId = jwtUtils.getUidAsLong(token);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid token");
+        }
+
+        return jobResultService.getResultIdsUploadedToBoth(userId);
     }
 }

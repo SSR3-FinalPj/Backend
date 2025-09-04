@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.JobResultDto;
 import org.example.ssj3pj.dto.JobWithResultsDto;
 import org.example.ssj3pj.entity.Job;
-import org.example.ssj3pj.entity.JobResult;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.JobRepository;
 import org.example.ssj3pj.repository.UsersRepository;
