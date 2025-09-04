@@ -37,8 +37,10 @@ public class CommentSender {
             // youtubeComments는 이미 { "videoId": "...", "comments": [...] } 형태
             if(purpose == "youtube"){
                 youtubeMap = objectMapper.convertValue(Comments, new TypeReference<>() {});
+                redditMap = null;
             } else if (purpose == "reddit") {
                 redditMap = objectMapper.convertValue(Comments, new TypeReference<>() {});
+                youtubeMap = null;
             }
 
 
