@@ -56,7 +56,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ needs.ci.outputs.IMAGE_TAG }}
         with:
-          cmd: yq eval -i '.image.tag = env(IMAGE_TAG)' 'values.yaml'
+          cmd: yq eval -i '.image.tag = env(IMAGE_TAG)' './backend/values.yaml'
           # YAML 파일을 편집하는 CLI 도구
           # ai_value.yaml 안의 image.tag를 IMAGE_TAG 값으로 변경
       - name: Commit manifest changes
