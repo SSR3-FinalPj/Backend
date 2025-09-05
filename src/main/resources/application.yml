@@ -143,3 +143,8 @@ sse:
     query-param: sse_token
   dev:
     allow-userid-param: false
+
+logging:
+  level:
+    redis.clients.jedis: DEBUG
+    org.springframework.data.redis: DEBUG
