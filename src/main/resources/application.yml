@@ -147,5 +147,5 @@ sse:
 
 logging:
   level:
+    redis.clients.jedis: DEBUG
     org.springframework.data.redis: DEBUG
-    io.lettuce.core: DEBUG

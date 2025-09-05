@@ -20,7 +20,7 @@ public class GoogleTokenRefresher {
   private final RedditTokenGuard redditTokenGuard;
 
   // 1분마다 만료 120초 이내 토큰 미리 갱신
-  @Scheduled(fixedDelayString = "PT1M", initialDelayString = "PT10S")
+  @Scheduled(fixedDelayString = "PT10M", initialDelayString = "PT10S")
   public void refreshSoonExpiring() {
     var threshold = Instant.now().plusSeconds(120);
 
