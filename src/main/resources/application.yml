@@ -42,8 +42,9 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
+      host: ${REDIS_HOST:redis-master-cs}
       port: ${REDIS_PORT:6379}
+
     elasticsearch:
       repositories:
         enabled: true
