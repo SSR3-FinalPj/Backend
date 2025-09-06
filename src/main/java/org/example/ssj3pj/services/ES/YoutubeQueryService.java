@@ -20,7 +20,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Collections;
 import java.io.IOException;
 
 import static org.example.ssj3pj.util.JsonNodeUtils.*;
@@ -400,10 +399,8 @@ public class YoutubeQueryService {
                     youtubeNode.put("videoId", videoId);
                     youtubeNode.set("comments", commentsArray);
 
-                    ObjectNode result = objectMapper.createObjectNode();
-                    result.set("youtube", youtubeNode);
 
-                    return result; // ✅ 원하는 JSON 구조 반환
+                    return youtubeNode; // ✅ 원하는 JSON 구조 반환
                 }
             }
         }
