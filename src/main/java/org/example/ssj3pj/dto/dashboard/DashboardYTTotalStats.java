@@ -10,4 +10,5 @@ public class DashboardYTTotalStats {
     @JsonProperty("total_view_count")  private long totalViewCount;
     @JsonProperty("total_like_count")  private long totalLikeCount;
     @JsonProperty("total_comment_count") private long totalCommentCount;
+    @JsonProperty("total_subscribe_count") private long totalSubscribeCount;
 }

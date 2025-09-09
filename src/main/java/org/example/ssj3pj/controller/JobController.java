@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.JobResultDto;
 import org.example.ssj3pj.dto.JobWithResultsDto;
+import org.example.ssj3pj.dto.request.CommentUpdateJobRequest;
 import org.example.ssj3pj.dto.request.CreateJobRequest;
 import org.example.ssj3pj.dto.response.CreateJobResponse;
 import org.example.ssj3pj.entity.Job;
@@ -73,7 +74,40 @@ public class JobController {
         }
     }
 
+    @PostMapping(path = "/comments_update", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<CreateJobResponse> commentsUpdateJob(@RequestBody CommentUpdateJobRequest req, HttpServletRequest request) {
+        String userName = extractUserName(request);
 
+        validateS3Key(req.key());
+        String key = req.key();
+        String pureKey = key.startsWith("images/") ? key.substring("images/".length()) : key;
+        try {
+            storage.head(req.key());
+
+            Job job = jobService.createJobAndProcess(
+                    pureKey,
+                    req.locationCode(),
+                    req.platform(),
+                    userName,
+                    req.prompt_text()
+            );
+
+            CreateJobResponse response = new CreateJobResponse(
+                    job.getId(),
+                    job.getStatus(),
+                    job.getSourceImageKey(),
+                    job.getPromptText()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (NoSuchKeyException e) {
+            log.error("Source image not found in S3 for key: {}", pureKey, e);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Source image not found in S3");
+        } catch (Exception e) {
+            log.error("Failed to create or process job for user: {}", userName, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to create or process job", e);
+        }
+    }
 
     private String extractUserName(HttpServletRequest request) {
         String auth = request.getHeader("Authorization");

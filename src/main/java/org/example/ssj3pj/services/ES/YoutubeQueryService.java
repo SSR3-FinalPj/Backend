@@ -96,6 +96,7 @@ public class YoutubeQueryService {
                 .totalViewCount(totalView)
                 .totalLikeCount(totalLike)
                 .totalCommentCount(totalComment)
+                .totalSubscribeCount(src.path("channel_stats").path("subscriber_count").asLong())
                 .build();
 
         // 최종 반환 DTO
@@ -349,6 +350,7 @@ public class YoutubeQueryService {
                 .totalLikeCount(like_count)
                 .totalViewCount(view_count)
                 .totalCommentCount(comment_count)
+                .totalSubscribeCount(source.path("channel_stats").path("subscriber_count").asLong())
                 .build();
     }
 
