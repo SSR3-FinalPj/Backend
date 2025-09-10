@@ -11,12 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
 
 @Slf4j
 @Component
@@ -28,27 +23,28 @@ public class DynamicVideoScheduler {
     private final VideoPromptSender sender;
     private final VideoRequestService videoRequestService;
 
-    private final Map<Long, ScheduledFuture<?>> jobTasks = new ConcurrentHashMap<>();
+    /**
+     * 최초 요청 → 즉시 4개 생성
+     */
+    public void startInitialJob(Long jobId) {
+        for (int i = 0; i < 4; i++) {
+            runTask(jobId, true);
+        }
+        log.info("[SCHED] 최초 요청 Job {} → 4개 영상 즉시 생성 완료", jobId);
+    }
 
     /**
-     * 요청 들어왔을 때 스케줄링 시작 (기존 스케줄 있으면 중단하고 새로 시작)
+     * 수정 요청 → 10분 간격으로 4개 생성
      */
-    public void startJobSchedule(Long jobId) {
-        stopJobSchedule(jobId);
-
-        runTask(jobId, true);
-
-        Runnable scheduledTask = () -> runTask(jobId, false);
-
-        ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(
-                scheduledTask,
-                Date.from(Instant.now().plusSeconds(3600)),
-                Duration.ofHours(1).toMillis()
-        );
-
-        jobTasks.put(jobId, future);
-
-        scheduleStopAt18(jobId);
+    public void startRevisionJob(Long jobId) {
+        for (int i = 0; i < 4; i++) {
+            int delayMinutes = i * 10;
+            taskScheduler.schedule(
+                    () -> runTask(jobId, false),
+                    Date.from(Instant.now().plus(Duration.ofMinutes(delayMinutes)))
+            );
+        }
+        log.info("[SCHED] 수정 요청 Job {} → 10분 간격으로 4개 영상 생성 예약 완료", jobId);
     }
 
     /**
@@ -81,31 +77,5 @@ public class DynamicVideoScheduler {
         } catch (Exception e) {
             log.error("[SCHED] Failed to send video request for job {}", jobId, e);
         }
-    }
-
-    /**
-     * 특정 jobId의 스케줄링 중단
-     */
-    public void stopJobSchedule(Long jobId) {
-        ScheduledFuture<?> future = jobTasks.remove(jobId);
-        if (future != null) {
-            future.cancel(true);
-            log.info("[SCHED] Stopped schedule for jobId={}", jobId);
-        }
-    }
-
-    /**
-     * 오늘 18시에 stop 예약
-     */
-    private void scheduleStopAt18(Long jobId) {
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
-        LocalDateTime stopTime = now.withHour(18).withMinute(0).withSecond(0);
-
-        if (stopTime.isBefore(now)) {
-            stopTime = stopTime.plusDays(1);
-        }
-
-        taskScheduler.schedule(() -> stopJobSchedule(jobId),
-                Date.from(stopTime.atZone(ZoneId.of("Asia/Seoul")).toInstant()));
     }
 }
