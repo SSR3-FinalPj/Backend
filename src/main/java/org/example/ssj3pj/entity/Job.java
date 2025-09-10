@@ -55,4 +55,8 @@ public class Job {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "previous_id", referencedColumnName = "result_id")
+    private JobResult parentResult;
 }
