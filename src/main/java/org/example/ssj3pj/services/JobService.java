@@ -37,8 +37,13 @@ public class JobService {
         // 1. 사용자 조회
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userName));
-        JobResult jobResult = jobResultRepository.getReferenceById(resultId);
-
+        JobResult jobResult;
+        if (resultId == null){
+            jobResult = null;
+        }
+        else {
+            jobResult = jobResultRepository.getReferenceById(resultId);
+        }
         // 2. Job 생성 및 저장
         Job job = Job.builder()
                 .user(user)
