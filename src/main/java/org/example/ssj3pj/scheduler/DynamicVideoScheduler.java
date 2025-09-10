@@ -36,10 +36,8 @@ public class DynamicVideoScheduler {
     public void startJobSchedule(Long jobId) {
         stopJobSchedule(jobId);
 
-        // ✅ 즉시 실행 (클라이언트 요청)
         runTask(jobId, true);
 
-        // ✅ 1시간마다 반복 실행 (스케줄러 실행)
         Runnable scheduledTask = () -> runTask(jobId, false);
 
         ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(
@@ -77,7 +75,7 @@ public class DynamicVideoScheduler {
                     data.getImageKey(),
                     data.getPrompttext(),
                     data.getPlatform(),
-                    isClient // ✅ 클라이언트 실행 여부 전달
+                    isClient
             );
             log.info("[SCHED] Sent video request for job={}, user={}, isClient={}", jobId, data.getUserId(), isClient);
         } catch (Exception e) {

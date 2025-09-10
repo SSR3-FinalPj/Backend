@@ -62,7 +62,6 @@ public class SecurityConfig {
         cfg.setAllowCredentials(true); // 쿠키/인증 정보 전송 허용
         cfg.setAllowedOrigins(List.of(allowedOrigins));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        // 요청 헤더는 * 로 넉넉히, 또는 필요한 것만 나열
         cfg.setAllowedHeaders(List.of("*"));
         // (선택) 브라우저에서 필요한 응답 헤더 노출
         cfg.setExposedHeaders(List.of("Set-Cookie"));
