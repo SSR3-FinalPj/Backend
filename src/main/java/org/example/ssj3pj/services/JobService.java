@@ -43,7 +43,6 @@ public class JobService {
                 .promptText(prompt_text)
                 .build();
         jobRepository.save(job);
-        jobRepository.save(job);
 
         // 3. Redis에 jobId + userId + imageKey + locationCode 저장
         videoRequestService.saveJobRequest(job.getId(), user.getId(), imageKey, locationCode, prompt_text, platform, true);

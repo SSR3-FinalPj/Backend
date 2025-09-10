@@ -1,5 +1,6 @@
 package org.example.ssj3pj.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotBlank;
@@ -78,30 +79,29 @@ public class JobController {
     public ResponseEntity<CreateJobResponse> commentsUpdateJob(@RequestBody CommentUpdateJobRequest req, HttpServletRequest request) {
         String userName = extractUserName(request);
 
-        validateS3Key(req.key());
-        String key = req.key();
-        String pureKey = key.startsWith("images/") ? key.substring("images/".length()) : key;
+        Long resultId = req.result_id();
+        JsonNode comments = req.comments();
         try {
-            storage.head(req.key());
-
-            Job job = jobService.createJobAndProcess(
-                    pureKey,
-                    req.locationCode(),
-                    req.platform(),
-                    userName,
-                    req.prompt_text()
-            );
-
-            CreateJobResponse response = new CreateJobResponse(
-                    job.getId(),
-                    job.getStatus(),
-                    job.getSourceImageKey(),
-                    job.getPromptText()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
+//            storage.head(req.key());
+//
+//            Job job = jobService.createJobAndProcess(
+//                    pureKey,
+//                    req.locationCode(),
+//                    req.platform(),
+//                    userName,
+//                    req.prompt_text()
+//            );
+//
+//            CreateJobResponse response = new CreateJobResponse(
+//                    job.getId(),
+//                    job.getStatus(),
+//                    job.getSourceImageKey(),
+//                    job.getPromptText()
+//            );
+//            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            return null;
         } catch (NoSuchKeyException e) {
-            log.error("Source image not found in S3 for key: {}", pureKey, e);
+//            log.error("Source image not found in S3 for key: {}", pureKey, e);
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Source image not found in S3");
         } catch (Exception e) {
             log.error("Failed to create or process job for user: {}", userName, e);
