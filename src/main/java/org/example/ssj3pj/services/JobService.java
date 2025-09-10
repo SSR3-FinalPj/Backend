@@ -3,6 +3,7 @@ package org.example.ssj3pj.services;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
+import org.example.ssj3pj.dto.ResultNodeDto;
 import org.example.ssj3pj.entity.Job;
 import org.example.ssj3pj.entity.JobResult;
 import org.example.ssj3pj.entity.User.Users;
@@ -14,6 +15,10 @@ import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -73,5 +78,21 @@ public class JobService {
         sseHub.notifyVideoReady(job.getId(), type);
 
         return jobResult;
+    }
+    public ResultNodeDto buildResultTree(JobResult jobResult) throws IOException {
+        ResultNodeDto node = ResultNodeDto.builder()
+                .resultId(jobResult.getId())
+                .children(new ArrayList<>())
+                .build();
+
+        List<Job> childJobs = jobRepository.findAllByParentResultId(jobResult.getId());
+        for (Job job : childJobs) {
+            List<JobResult> results = jobResultRepository.findAllByJobId(job.getId());
+            for (JobResult jr : results) {
+                node.getChildren().add(buildResultTree(jr));
+            }
+        }
+//        List<JobResult> childJobs = jobResultRepository.findAllByJobId(jobResult.getJob().getId());
+        return node;
     }
 }

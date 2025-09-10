@@ -47,4 +47,7 @@ public class JobResult {
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "is_parent", length = 20, nullable = false)
+    private Boolean isParent = false;
 }
