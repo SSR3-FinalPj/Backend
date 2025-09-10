@@ -53,7 +53,8 @@ public class JobController {
                     req.locationCode(),
                     req.platform(),
                     userName,
-                    req.prompt_text()
+                    req.prompt_text(),
+                    null
             );
 
             CreateJobResponse response = new CreateJobResponse(

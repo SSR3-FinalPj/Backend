@@ -28,10 +28,11 @@ public class JobService {
     private final DynamicVideoScheduler dynamicVideoScheduler;
 
     @Transactional
-    public Job createJobAndProcess(String imageKey, String locationCode, String platform, String userName, String prompt_text) {
+    public Job createJobAndProcess(String imageKey, String locationCode, String platform, String userName, String prompt_text, Long resultId) {
         // 1. 사용자 조회
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userName));
+        JobResult jobResult = jobResultRepository.getReferenceById(resultId);
 
         // 2. Job 생성 및 저장
         Job job = Job.builder()
@@ -41,6 +42,7 @@ public class JobService {
                 .locationCode(locationCode)
                 .sourceImageKey(imageKey)
                 .promptText(prompt_text)
+                .parentResult(jobResult)
                 .build();
         jobRepository.save(job);
         jobRepository.save(job);
