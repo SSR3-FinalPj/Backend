@@ -1,4 +1,3 @@
-// src/main/java/org/example/ssj3pj/controller/SseController.java
 package org.example.ssj3pj.controller;
 
 import jakarta.servlet.http.HttpServletRequest;

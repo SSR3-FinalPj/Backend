@@ -1,4 +1,5 @@
 package org.example.ssj3pj.scheduler;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
@@ -24,33 +25,41 @@ public class DynamicVideoScheduler {
     private final VideoRequestService videoRequestService;
 
     /**
-     * 최초 요청 → 즉시 4개 생성
+     * 최초 요청 → 첫 번째 영상 즉시 생성
      */
     public void startInitialJob(Long jobId) {
-        for (int i = 0; i < 4; i++) {
-            runTask(jobId, true);
-        }
-        log.info("[SCHED] 최초 요청 Job {} → 4개 영상 즉시 생성 완료", jobId);
+        triggerNext(jobId, true, 0); // step=0에서 시작
+        log.info("[SCHED] 최초 요청 Job {} → 첫 번째 영상 생성 시작", jobId);
     }
 
     /**
-     * 수정 요청 → 10분 간격으로 4개 생성
+     * 수정 요청 → 첫 번째 영상 즉시 생성
      */
     public void startRevisionJob(Long jobId) {
-        for (int i = 0; i < 4; i++) {
-            int delayMinutes = i * 10;
-            taskScheduler.schedule(
-                    () -> runTask(jobId, false),
-                    Date.from(Instant.now().plus(Duration.ofMinutes(delayMinutes)))
-            );
+        triggerNext(jobId, false, 0);
+        log.info("[SCHED] 수정 요청 Job {} → 첫 번째 영상 생성 시작", jobId);
+    }
+
+    /**
+     * 다음 영상 생성 트리거
+     * 최초 요청은 즉시 실행, 수정 요청은 10분 지연 가능
+     */
+    public void triggerNext(Long jobId, boolean isInitial, int currentStep) {
+        int delayMinutes = 0;
+        if (!isInitial) {
+            delayMinutes = 10; // 수정 요청은 10분 간격
         }
-        log.info("[SCHED] 수정 요청 Job {} → 10분 간격으로 4개 영상 생성 예약 완료", jobId);
+
+        taskScheduler.schedule(
+                () -> runTask(jobId, isInitial, currentStep + 1),
+                Date.from(Instant.now().plus(Duration.ofMinutes(delayMinutes)))
+        );
     }
 
     /**
      * 실제 실행 로직
      */
-    private void runTask(Long jobId, boolean isClient) {
+    private void runTask(Long jobId, boolean isInitial, int step) {
         UserRequestData data = videoRequestService.getJobRequest(jobId);
         if (data == null) {
             log.warn("[SCHED] No request data in Redis for job {}", jobId);
@@ -71,9 +80,9 @@ public class DynamicVideoScheduler {
                     data.getImageKey(),
                     data.getPrompttext(),
                     data.getPlatform(),
-                    isClient
+                        isInitial // 최초인지 수정인지 구분만 전달
             );
-            log.info("[SCHED] Sent video request for job={}, user={}, isClient={}", jobId, data.getUserId(), isClient);
+            log.info("[SCHED] Sent video request for job={}, step={}, isInitial={}", jobId, step, isInitial);
         } catch (Exception e) {
             log.error("[SCHED] Failed to send video request for job {}", jobId, e);
         }
