@@ -59,4 +59,10 @@ public class Job {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "previous_id", referencedColumnName = "result_id")
     private JobResult parentResult;
+
+    @Column(name = "use_citydata")
+    private boolean useCitydata;
+
+    @Column(name = "mascot_image_key", length = 500)
+    private String mascotImageKey;
 }

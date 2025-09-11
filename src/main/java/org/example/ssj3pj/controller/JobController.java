@@ -46,10 +46,10 @@ public class JobController {
     @PostMapping(path = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateJobResponse> createJob(@RequestBody CreateJobRequest req, HttpServletRequest request) {
         String userName = extractUserName(request);
-
+        String mascotImgKey = ;
         validateS3Key(req.key());
-        String key = req.key();
-        String pureKey = key.startsWith("images/") ? key.substring("images/".length()) : key;
+        String srcImgkey = req.key();
+        String pureKey = srcImgkey.startsWith("images/") ? srcImgkey.substring("images/".length()) : srcImgkey;
         try {
             storage.head(req.key());
 
@@ -59,7 +59,9 @@ public class JobController {
                     req.platform(),
                     userName,
                     req.prompt_text(),
-                    null
+                    null,
+                    req.city(),
+                    mascotImgKey
             );
 
             CreateJobResponse response = new CreateJobResponse(

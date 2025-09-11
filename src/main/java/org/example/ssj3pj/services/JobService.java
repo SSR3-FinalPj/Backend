@@ -33,7 +33,7 @@ public class JobService {
     private final DynamicVideoScheduler dynamicVideoScheduler;
 
     @Transactional
-    public Job createJobAndProcess(String imageKey, String locationCode, String platform, String userName, String prompt_text, Long resultId) {
+    public Job createJobAndProcess(String imageKey, String locationCode, String platform, String userName, String prompt_text, Long resultId, boolean city, String mascotImgKey) {
         // 1. 사용자 조회
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userName));
@@ -53,8 +53,9 @@ public class JobService {
                 .sourceImageKey(imageKey)
                 .promptText(prompt_text)
                 .parentResult(jobResult)
+                .useCitydata(city)
+                .mascotImageKey(mascotImgKey)
                 .build();
-        jobRepository.save(job);
         jobRepository.save(job);
 
         // 3. Redis에 jobId + userId + imageKey + locationCode 저장

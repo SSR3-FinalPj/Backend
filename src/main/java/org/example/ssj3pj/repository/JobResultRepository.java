@@ -31,4 +31,5 @@ public interface JobResultRepository extends JpaRepository<JobResult, Long> {
             "AND jr.ytUpload IS NOT NULL " +
             "AND jr.rdUpload IS NOT NULL")
     List<Long> findResultIdsUploadedToBoth(Long userId);
+    JobResult findByResultKey(String resultKey);
 }
