@@ -321,6 +321,31 @@ public class YoutubeQueryService {
 
         return null;
     }
+    public Top5VideoListDto findTop5VideoByViews(String esDocId)throws IOException{
+        GetRequest getRequest = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(getRequest, JsonData.class);
+
+        if (!response.found()) {
+            log.warn("ES document not found for id: {}", esDocId);
+            return null;
+        }
+
+        JsonNode source = objectMapper.readTree(response.source().toJson().toString());
+        JsonNode videosNode = source.path("channel_analytics").path("top_videos_by_views");
+        List<String> videos = new ArrayList<>();
+        for (JsonNode videoNode : videosNode){
+            String videoId = videoNode.path("video").asText();
+            videos.add(videoId);
+        }
+        return Top5VideoListDto.builder()
+                .channelId(source.path("channel_id").asText())
+                .videos(videos)
+                .build();
+    }
     public DashboardYTTotalStats findAllStat(String esDocId) throws IOException{
         GetRequest getRequest = new GetRequest.Builder()
                 .index(INDEX)

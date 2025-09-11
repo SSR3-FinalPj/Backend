@@ -9,6 +9,7 @@ import org.example.ssj3pj.entity.Job;
 import org.example.ssj3pj.entity.JobResult;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.redis.VideoRequestService;
+import org.example.ssj3pj.scheduler.DynamicVideoScheduler;
 import org.example.ssj3pj.repository.JobRepository;
 import org.example.ssj3pj.repository.JobResultRepository;
 import org.example.ssj3pj.repository.UsersRepository;
@@ -17,6 +18,7 @@ import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,10 +41,17 @@ public class JobService {
      * 최초 요청
      */
     @Transactional
-    public Job createInitialJob(String imageKey, String locationCode, String platform, String userName, String promptText) {
+    public Job createInitialJob(String imageKey, String locationCode, String platform, String userName, String promptText, Long resultId, boolean city, String mascotImgKey) {
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userName));
-
+        JobResult jobResult;
+        if (resultId == null){
+            jobResult = null;
+        }
+        else {
+            jobResult = jobResultRepository.getReferenceById(resultId);
+        }
+        // 2. Job 생성 및 저장
         Job job = Job.builder()
                 .user(user)
                 .status("PROCESSING")
@@ -50,6 +59,9 @@ public class JobService {
                 .locationCode(locationCode)
                 .sourceImageKey(imageKey)
                 .promptText(promptText)
+                .parentResult(jobResult)
+                .useCitydata(city)
+                .mascotImageKey(mascotImgKey)
                 .build();
         jobRepository.save(job);
 

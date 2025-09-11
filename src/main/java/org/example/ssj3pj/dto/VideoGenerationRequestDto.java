@@ -3,6 +3,7 @@ package org.example.ssj3pj.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
+import org.example.ssj3pj.entity.Prompt;
 
 import java.util.Map;
 
@@ -17,18 +18,22 @@ public class VideoGenerationRequestDto {
     @JsonProperty("img")
     private String imageKey;
 
-    @JsonProperty("userId")
-    private String userId; // FastAPI   expects string, so convert Long to String
+    @JsonProperty("mascotImg")
+    private String mascotImageKey;
 
     @JsonProperty("weather")
     private EnvironmentSummaryDto weatherData; // This will contain the ES summary
-
-    @JsonProperty("user")
-    private Map<String, Object> userData;
 
     private String platform;
 
     private boolean isClient;
 
-    private String promptText;
+    @JsonProperty("user")
+    private String currentPrompt;
+
+    private String beforePrompt;
+
+    private PromptRequest element;
+
+    private PromptRequest sample;
 }
