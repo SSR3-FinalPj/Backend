@@ -9,6 +9,7 @@ import org.example.ssj3pj.dto.JobResultDto;
 import org.example.ssj3pj.dto.JobWithResultsDto;
 import org.example.ssj3pj.dto.ResultNodeDto;
 import org.example.ssj3pj.dto.request.CreateJobRequest;
+import org.example.ssj3pj.dto.request.ReviseJobRequest;
 import org.example.ssj3pj.dto.response.CreateJobResponse;
 import org.example.ssj3pj.entity.Job;
 import org.example.ssj3pj.entity.JobResult;
@@ -53,15 +54,13 @@ public class JobController {
         try {
             storage.head(req.key());
 
-            Job job = jobService.createJobAndProcess(
+            Job job = jobService.createInitialJob(
                     pureKey,
                     req.locationCode(),
                     req.platform(),
                     userName,
-                    req.prompt_text(),
-                    null
+                    req.prompt_text()
             );
-
             CreateJobResponse response = new CreateJobResponse(
                     job.getId(),
                     job.getStatus(),
@@ -79,6 +78,30 @@ public class JobController {
         }
     }
 
+    @PostMapping(path = "/revise", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<CreateJobResponse> reviseJob(@RequestBody ReviseJobRequest req, HttpServletRequest request) {
+        String userName = extractUserName(request);
+
+        try {
+            Job job = jobService.createRevisionJob(
+                    req.getResultId(),
+                    req.getPromptText(),
+                    userName
+            );
+
+            CreateJobResponse response = new CreateJobResponse(
+                    job.getId(),
+                    job.getStatus(),
+                    job.getSourceImageKey(),
+                    job.getPromptText()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        } catch (Exception e) {
+            log.error("Failed to create revision job for user: {}", userName, e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "수정 요청 처리 중 오류가 발생했습니다", e);
+        }
+    }
 
 
     private String extractUserName(HttpServletRequest request) {
