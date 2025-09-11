@@ -26,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import org.example.ssj3pj.dto.VideoGenerationRequestDto;
@@ -52,6 +53,7 @@ public class VideoPromptSender {
      * ES 문서 ID로 조회한 환경 요약 정보를 브릿지(FastAPI)로 전송
      * - 로그인한 사용자의 users.id를 DTO에 포함하여 전송
      */
+    @Transactional
     public void sendEnvironmentDataToFastAPI(EnvironmentSummaryDto weatherData,
                                              Long jobId,
                                              Long userId,
@@ -121,14 +123,13 @@ public class VideoPromptSender {
                 .build();
 
         log.info("Build END");
-        String url = bridgeBaseUrl + "/api/generate-video";
+//        String url = bridgeBaseUrl + "/api/generate-video";
+        String url = bridgeBaseUrl + "/api/veo3-generate";
         try {
             log.info("Bridge START");
             ResponseEntity<String> response = restTemplate.postForEntity(url, requestDto, String.class);
             JsonNode root = objectMapper.readTree(response.getBody());
             JsonNode extracted = root.path("extracted");
-
-
 
             Prompt prompt = Prompt.builder()
                     .job(job)
