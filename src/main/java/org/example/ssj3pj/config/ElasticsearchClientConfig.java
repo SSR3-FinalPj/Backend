@@ -14,18 +14,13 @@ import org.springframework.context.annotation.Configuration;
 
 
 
-//Elasticsearch에 연결할 클라이언트 인스턴스(ElasticsearchClient)를 Spring Bean으로 등록해주는 설정 파일
 @Configuration
 public class ElasticsearchClientConfig {
 
     @Value("${ELASTICSEARCH_HOST}")
     private String esHost;
 
-    @Value("${ELASTICSEARCH_USERNAME:}")
-    private String esUsername;
 
-    @Value("${ELASTICSEARCH_PASSWORD:}")
-    private String esPassword;
     @Bean
     public ElasticsearchClient elasticsearchClient() {
         RestClient restClient = RestClient.builder(HttpHost.create(esHost)).build();

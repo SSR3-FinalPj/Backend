@@ -1,4 +1,5 @@
 package org.example.ssj3pj.scheduler;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
@@ -11,12 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Date;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
 
 @Slf4j
 @Component
@@ -28,35 +24,42 @@ public class DynamicVideoScheduler {
     private final VideoPromptSender sender;
     private final VideoRequestService videoRequestService;
 
-    private final Map<Long, ScheduledFuture<?>> jobTasks = new ConcurrentHashMap<>();
+    /**
+     * 최초 요청 → 첫 번째 영상 즉시 생성
+     */
+    public void startInitialJob(Long jobId) {
+        triggerNext(jobId, true, 0); // step=0에서 시작
+        log.info("[SCHED] 최초 요청 Job {} → 첫 번째 영상 생성 시작", jobId);
+    }
 
     /**
-     * 요청 들어왔을 때 스케줄링 시작 (기존 스케줄 있으면 중단하고 새로 시작)
+     * 수정 요청 → 첫 번째 영상 즉시 생성
      */
-    public void startJobSchedule(Long jobId) {
-        stopJobSchedule(jobId);
+    public void startRevisionJob(Long jobId) {
+        triggerNext(jobId, false, 0);
+        log.info("[SCHED] 수정 요청 Job {} → 첫 번째 영상 생성 시작", jobId);
+    }
 
-        // ✅ 즉시 실행 (클라이언트 요청)
-        runTask(jobId, true);
+    /**
+     * 다음 영상 생성 트리거
+     * 최초 요청은 즉시 실행, 수정 요청은 10분 지연 가능
+     */
+    public void triggerNext(Long jobId, boolean isInitial, int currentStep) {
+        int delayMinutes = 0;
+        if (!isInitial) {
+            delayMinutes = 10; // 수정 요청은 10분 간격
+        }
 
-        // ✅ 1시간마다 반복 실행 (스케줄러 실행)
-        Runnable scheduledTask = () -> runTask(jobId, false);
-
-        ScheduledFuture<?> future = taskScheduler.scheduleAtFixedRate(
-                scheduledTask,
-                Date.from(Instant.now().plusSeconds(3600)),
-                Duration.ofHours(1).toMillis()
+        taskScheduler.schedule(
+                () -> runTask(jobId, isInitial, currentStep + 1),
+                Date.from(Instant.now().plus(Duration.ofMinutes(delayMinutes)))
         );
-
-        jobTasks.put(jobId, future);
-
-        scheduleStopAt18(jobId);
     }
 
     /**
      * 실제 실행 로직
      */
-    private void runTask(Long jobId, boolean isClient) {
+    private void runTask(Long jobId, boolean isInitial, int step) {
         UserRequestData data = videoRequestService.getJobRequest(jobId);
         if (data == null) {
             log.warn("[SCHED] No request data in Redis for job {}", jobId);
@@ -77,37 +80,11 @@ public class DynamicVideoScheduler {
                     data.getImageKey(),
                     data.getPrompttext(),
                     data.getPlatform(),
-                    isClient // ✅ 클라이언트 실행 여부 전달
+                        isInitial // 최초인지 수정인지 구분만 전달
             );
-            log.info("[SCHED] Sent video request for job={}, user={}, isClient={}", jobId, data.getUserId(), isClient);
+            log.info("[SCHED] Sent video request for job={}, step={}, isInitial={}", jobId, step, isInitial);
         } catch (Exception e) {
             log.error("[SCHED] Failed to send video request for job {}", jobId, e);
         }
-    }
-
-    /**
-     * 특정 jobId의 스케줄링 중단
-     */
-    public void stopJobSchedule(Long jobId) {
-        ScheduledFuture<?> future = jobTasks.remove(jobId);
-        if (future != null) {
-            future.cancel(true);
-            log.info("[SCHED] Stopped schedule for jobId={}", jobId);
-        }
-    }
-
-    /**
-     * 오늘 18시에 stop 예약
-     */
-    private void scheduleStopAt18(Long jobId) {
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Seoul"));
-        LocalDateTime stopTime = now.withHour(18).withMinute(0).withSecond(0);
-
-        if (stopTime.isBefore(now)) {
-            stopTime = stopTime.plusDays(1);
-        }
-
-        taskScheduler.schedule(() -> stopJobSchedule(jobId),
-                Date.from(stopTime.atZone(ZoneId.of("Asia/Seoul")).toInstant()));
     }
 }
