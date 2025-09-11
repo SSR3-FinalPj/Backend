@@ -123,7 +123,7 @@ public class VideoPromptSender {
                 .build();
 
         log.info("Build END");
-//        String url = bridgeBaseUrl + "/api/generate-video";
+//        String url = bridgeBaseUrl + "/api/generate-media";
         String url = bridgeBaseUrl + "/api/veo3-generate";
         try {
             log.info("Bridge START");
