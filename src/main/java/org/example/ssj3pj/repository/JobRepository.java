@@ -14,5 +14,4 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     /** 사용자의 모든 Job을 생성일 역순으로 조회 */
     List<Job> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<Job> findAllByParentResultId(Long resultId);
-    Job findById(String id);
 }

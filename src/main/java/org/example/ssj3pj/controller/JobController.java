@@ -16,6 +16,7 @@ import org.example.ssj3pj.entity.JobResult;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.JobRepository;
 import org.example.ssj3pj.repository.JobResultRepository;
+import org.example.ssj3pj.repository.MascotImageRepository;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
 import org.example.ssj3pj.services.JobService;
@@ -41,13 +42,14 @@ public class JobController {
     private final JobService jobService;
     private final JobRepository jobRepository;
     private final JobResultRepository jobResultRepository;
+    private final MascotImageRepository mascotImageRepository;
     private final UsersRepository usersRepository;
     private final JwtUtils jwtUtils;
 
     @PostMapping(path = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateJobResponse> createJob(@RequestBody CreateJobRequest req, HttpServletRequest request) {
         String userName = extractUserName(request);
-        String mascotImgKey = ;
+        String mascotImgKey = mascotImageRepository.findByRegionCode(req.locationCode()).get().getMascotImageKey();
         validateS3Key(req.key());
         String srcImgkey = req.key();
         String pureKey = srcImgkey.startsWith("images/") ? srcImgkey.substring("images/".length()) : srcImgkey;

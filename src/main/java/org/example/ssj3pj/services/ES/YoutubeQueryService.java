@@ -321,7 +321,7 @@ public class YoutubeQueryService {
 
         return null;
     }
-    public Top5VideoListDto findTop5VideoByViews(String esDocId){
+    public Top5VideoListDto findTop5VideoByViews(String esDocId)throws IOException{
         GetRequest getRequest = new GetRequest.Builder()
                 .index(INDEX)
                 .id(esDocId)

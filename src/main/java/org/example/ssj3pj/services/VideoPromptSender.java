@@ -1,5 +1,6 @@
 package org.example.ssj3pj.services;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -57,7 +58,7 @@ public class VideoPromptSender {
                                              String imageKey,
                                              String promptText,
                                              String platform,
-                                             boolean isClient) {
+                                             boolean isClient) throws IOException {
         log.info("API START");
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
