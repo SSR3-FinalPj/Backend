@@ -1,10 +1,6 @@
 package org.example.ssj3pj.services.Reddit;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.example.ssj3pj.dto.reddit.RedditUploadRequestDto;
 import org.example.ssj3pj.dto.reddit.RedditUploadResultDto;
 import org.example.ssj3pj.entity.JobResult;
@@ -32,7 +28,6 @@ public class RedditJobUploadService {
     private final JobResultRepository jobResultRepository;
     private final UsersRepository usersRepository;
     private final SseHub sseHub;
-    private final ObjectMapper objectMapper;
 
     /**
      * JobResult를 Reddit에 업로드
@@ -41,33 +36,30 @@ public class RedditJobUploadService {
     public RedditUploadResultDto uploadJobResult(Long resultId,
                                                  RedditUploadRequestDto request,
                                                  Long userId) {
-        Path tempImageFile = null;
+        Path tempFile = null;
 
         try {
             // 1. 권한 확인 및 데이터 조회
             JobResult jobResult = validateAndGetJobResult(resultId, userId);
 
-            log.info("Reddit 업로드 시작: resultId={}, userId={}, subreddit={}",
-                    resultId, userId, request.getSubreddit());
+            log.info("Reddit 업로드 시작: resultId={}, userId={}, subreddit={}, kind={}",
+                    resultId, userId, request.getSubreddit(), jobResult.getType());
 
-            // 2. S3에서 임시 파일 다운로드 (이미지)
-            tempImageFile = storageService.downloadToTemporary(jobResult.getResultKey());
+            // 2. S3에서 임시 파일 다운로드
+            tempFile = storageService.downloadToTemporary(jobResult.getResultKey());
 
-            // 3. Reddit 업로드 실행
-            String redditResponse = redditUploadService.uploadMediaPost(
+            // 3. Reddit 업로드 실행 (postId 반환)
+            String postId = redditUploadService.uploadMediaPost(
                     userId,
                     request.getSubreddit(),
                     request.getTitle(),
-                    tempImageFile.toFile(),
+                    tempFile.toFile(),
                     jobResult.getType()
-
             );
 
-            // 4. 업로드 결과 파싱
-            String postId = extractPostIdFromResponse(redditResponse);
             String postUrl = "https://www.reddit.com/comments/" + postId;
 
-            // 5. 성공 결과 생성
+            // 4. 성공 결과 생성
             RedditUploadResultDto result = RedditUploadResultDto.builder()
                     .success(true)
                     .postId(postId)
@@ -76,7 +68,7 @@ public class RedditJobUploadService {
                     .resultId(resultId)
                     .build();
 
-            // 6. SSE 알림 발송
+            // 5. SSE 알림 발송
             sseHub.notifyRedditUploadCompleted(userId, postId);
 
             log.info("Reddit 업로드 완료: postId={}", postId);
@@ -93,9 +85,9 @@ public class RedditJobUploadService {
                     .build();
 
         } finally {
-            // 7. 임시 파일 정리
-            if (tempImageFile != null) {
-                storageService.cleanupTemporaryFile(tempImageFile);
+            // 6. 임시 파일 정리
+            if (tempFile != null) {
+                storageService.cleanupTemporaryFile(tempFile);
             }
         }
     }
@@ -119,24 +111,5 @@ public class RedditJobUploadService {
         }
 
         return jobResult;
-    }
-
-    /**
-     * Reddit API 응답에서 postId 추출
-     */
-    private String extractPostIdFromResponse(String redditResponse) {
-        try {
-            JsonNode jsonNode = objectMapper.readTree(redditResponse);
-            String postId = jsonNode.path("json").path("data").path("id").asText();
-
-            if (postId == null || postId.isEmpty()) {
-                throw new RuntimeException("Reddit 응답에서 postId를 찾을 수 없습니다");
-            }
-
-            return postId;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Reddit 응답 파싱 실패", e);
-        }
     }
 }

@@ -35,27 +35,27 @@ public class RedditUploadController {
             @Valid @RequestBody RedditUploadRequestDto request,
             HttpServletRequest httpRequest) {
 
-        try {
-            Long userId = getUserIdFromRequest(httpRequest);
+        Long userId = getUserIdFromRequest(httpRequest);
 
-            log.info("Reddit 업로드 요청: resultId={}, userId={}, subreddit={}, title={}",
+        try {
+            log.info("📤 Reddit 업로드 요청: resultId={}, userId={}, subreddit={}, title={}",
                     resultId, userId, request.getSubreddit(), request.getTitle());
 
-            RedditUploadResultDto result = redditJobUploadService.uploadJobResult(
-                    resultId, request, userId);
+            RedditUploadResultDto result = redditJobUploadService.uploadJobResult(resultId, request, userId);
 
             if (result.isSuccess()) {
-                log.info("Reddit 업로드 성공: postId={}", result.getPostId());
+                log.info("✅ Reddit 업로드 성공: resultId={}, postId={}, url={}",
+                        resultId, result.getPostId(), result.getPostUrl());
                 return ResponseEntity.ok(result);
             } else {
-                log.warn("Reddit 업로드 실패: {}", result.getErrorMessage());
+                log.warn("⚠️ Reddit 업로드 실패: resultId={}, error={}", resultId, result.getErrorMessage());
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
             }
 
         } catch (ResponseStatusException e) {
-            throw e;
+            throw e; // 그대로 Spring이 핸들링
         } catch (Exception e) {
-            log.error("Reddit 업로드 처리 중 오류: resultId={}", resultId, e);
+            log.error("❌ Reddit 업로드 처리 중 예외 발생: resultId={}, userId={}", resultId, userId, e);
 
             RedditUploadResultDto errorResult = RedditUploadResultDto.builder()
                     .success(false)
