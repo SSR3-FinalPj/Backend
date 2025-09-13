@@ -3,6 +3,7 @@ package org.example.ssj3pj.services;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -107,8 +108,68 @@ public class VideoPromptSender {
         }
         else{
             beforePrompt = null;
-            element = null;
+
+            Random random = new Random();
+            int rand = random.nextInt(4) + 1; // 1 ~ 4
+
+            String style = null;
+            String subject = null;
+            String focusAndLens = null;
+            String ambiance = null;
+            String cameraPositioning = null;
+            String composition = null;
+            String action = null;
+
+            switch (rand) {
+                case 1 -> {
+                    style = "Cinematic";
+                    subject = "Urban street scene";
+                    focusAndLens = "Wide-angle lens";
+                    ambiance = "Moody night atmosphere";
+                    cameraPositioning = "Low-angle shot";
+                    composition = "Rule of thirds";
+                    action = "Walking crowd";
+                }
+                case 2 -> {
+                    style = "Minimalist";
+                    subject = "Nature landscape";
+                    focusAndLens = "Telephoto lens";
+                    ambiance = "Bright and calm";
+                    cameraPositioning = "Bird-eye view";
+                    composition = "Symmetry focus";
+                    action = "Flowing river";
+                }
+                case 3 -> {
+                    style = "Realistic";
+                    subject = "Portrait";
+                    focusAndLens = "50mm lens";
+                    ambiance = "Soft warm light";
+                    cameraPositioning = "Eye-level";
+                    composition = "Centered";
+                    action = "Smiling";
+                }
+                case 4 -> {
+                    style = "Fantasy art";
+                    subject = "Mystical forest";
+                    focusAndLens = "Fish-eye lens";
+                    ambiance = "Dreamy mist";
+                    cameraPositioning = "Tilted shot";
+                    composition = "Dynamic diagonal";
+                    action = "Flying creatures";
+                }
+            }
+
+            element = PromptRequest.builder()
+                    .style(style)
+                    .subject(subject)
+                    .focusAndLens(focusAndLens)
+                    .ambiance(ambiance)
+                    .cameraPositioning(cameraPositioning)
+                    .composition(composition)
+                    .action(action)
+                    .build();
         }
+
         VideoGenerationRequestDto requestDto = VideoGenerationRequestDto.builder()
                 .jobId(jobId)
                 .imageKey(imageKey)

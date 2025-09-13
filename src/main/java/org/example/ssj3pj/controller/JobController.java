@@ -130,32 +130,32 @@ public class JobController {
     }
 
     /** 특정 Job과 관련 결과들 조회 */
-    @GetMapping("/jobs/{jobId}")
-    public ResponseEntity<JobWithResultsDto> getJobWithResults(@PathVariable Long jobId, HttpServletRequest request) {
-        String userName = extractUserName(request);
-        
-        try {
-            Users user = usersRepository.findByUsername(userName)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다"));
-
-            Job job = jobRepository.findById(jobId)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job을 찾을 수 없습니다"));
-
-            // 권한 확인 (본인의 Job만 조회 가능)
-            if (!job.getUser().getId().equals(user.getId())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "접근 권한이 없습니다");
-            }
-
-            JobWithResultsDto result = JobWithResultsDto.fromEntity(job);
-            return ResponseEntity.ok(result);
-
-        } catch (ResponseStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Job 조회 실패: jobId={}, user={}", jobId, userName, e);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Job 조회 중 오류가 발생했습니다");
-        }
-    }
+//    @GetMapping("/jobs/{jobId}")
+//    public ResponseEntity<JobWithResultsDto> getJobWithResults(@PathVariable Long jobId, HttpServletRequest request) {
+//        String userName = extractUserName(request);
+//
+//        try {
+//            Users user = usersRepository.findByUsername(userName)
+//                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다"));
+//
+//            Job job = jobRepository.findById(jobId)
+//                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job을 찾을 수 없습니다"));
+//
+//            // 권한 확인 (본인의 Job만 조회 가능)
+//            if (!job.getUser().getId().equals(user.getId())) {
+//                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "접근 권한이 없습니다");
+//            }
+//
+//            JobWithResultsDto result = JobWithResultsDto.fromEntity(job);
+//            return ResponseEntity.ok(result);
+//
+//        } catch (ResponseStatusException e) {
+//            throw e;
+//        } catch (Exception e) {
+//            log.error("Job 조회 실패: jobId={}, user={}", jobId, userName, e);
+//            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Job 조회 중 오류가 발생했습니다");
+//        }
+//    }
 
     /** 특정 Job의 결과 목록만 조회 */
     @GetMapping("/jobs/{jobId}/results")
@@ -214,7 +214,7 @@ public class JobController {
     }
     /** 현재 사용자의 이미지별 모든 Job과 결과들 조회 */
     @GetMapping("/jobs/{resultId}")
-    public ResponseEntity<List<ResultNodeDto>> getMyJobsByImage(@PathVariable Long resultId, HttpServletRequest request) {
+    public ResponseEntity<List<ResultNodeDto>> getMyJobsByImage(@PathVariable("resultId") Long resultId, HttpServletRequest request) {
         String userName = extractUserName(request);
 
         try {
