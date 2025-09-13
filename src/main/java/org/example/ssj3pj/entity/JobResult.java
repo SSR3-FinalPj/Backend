@@ -48,6 +48,6 @@ public class JobResult {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "is_parent", length = 20, nullable = false)
+    @Column(name = "is_parent", length = 20)
     private Boolean isParent = false;
 }
