@@ -48,13 +48,26 @@ public class RedditJobUploadService {
             // 2. S3에서 임시 파일 다운로드
             tempFile = storageService.downloadToTemporary(jobResult.getResultKey());
 
-            // 3. Reddit 업로드 실행 (postId 반환)
+            // 3. 썸네일 URL 생성 (비디오인 경우)
+            String thumbnailUrl = null;
+            if ("video".equalsIgnoreCase(jobResult.getType())) {
+                String mascotImageKey = jobResult.getJob().getMascotImageKey();
+
+                if (mascotImageKey == null || mascotImageKey.isBlank()) {
+                    mascotImageKey = "yeongdeungpo.png"; // 기본 마스코트 이미지 키
+                }
+
+                thumbnailUrl = storageService.getPublicUrl(mascotImageKey);
+            }
+
+            // 4. Reddit 업로드 실행 (postId 반환)
             String postId = redditUploadService.uploadMediaPost(
                     userId,
                     request.getSubreddit(),
                     request.getTitle(),
                     tempFile.toFile(),
-                    jobResult.getType()
+                    jobResult.getType(),
+                    thumbnailUrl
             );
 
             String postUrl = "https://www.reddit.com/comments/" + postId;

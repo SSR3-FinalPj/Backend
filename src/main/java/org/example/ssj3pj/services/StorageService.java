@@ -115,29 +115,29 @@ public class StorageService {
         Files.deleteIfExists(tempFile);
 
         log.info("S3에서 임시 파일로 다운로드 시작: {} -> {}", resultKey, tempFile);
-        
+
         try {
             // S3Client로 직접 다운로드 (Presigned URL 문제 우회)
             software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest =
-                software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(resultKey)
-                    .build();
+                    software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(resultKey)
+                            .build();
 
             // S3에서 파일을 직접 임시 파일에 다운로드
             software.amazon.awssdk.services.s3.model.GetObjectResponse response =
-                s3.getObject(getObjectRequest, tempFile);
+                    s3.getObject(getObjectRequest, tempFile);
 
             long fileSize = Files.size(tempFile);
             log.info("S3 파일 다운로드 완료: {} bytes", fileSize);
             return tempFile;
-            
+
         } catch (Exception e) {
             // 임시 파일 정리
             try {
                 Files.deleteIfExists(tempFile);
             } catch (IOException ignored) {}
-            
+
             throw new IOException("S3 파일 다운로드 실패: " + resultKey, e);
         }
     }
@@ -161,5 +161,13 @@ public class StorageService {
             return key.substring(lastDot);
         }
         return ".mp4"; // 기본값
+    }
+
+    /** S3 객체의 공개 URL 생성 */
+    public String getPublicUrl(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, awsRegion, key);
     }
 }
