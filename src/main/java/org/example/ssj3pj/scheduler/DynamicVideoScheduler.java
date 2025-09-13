@@ -4,7 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 import org.example.ssj3pj.dto.request.UserRequestData;
+import org.example.ssj3pj.entity.Job;
 import org.example.ssj3pj.redis.VideoRequestService;
+import org.example.ssj3pj.repository.JobRepository;
 import org.example.ssj3pj.services.ES.EnvironmentQueryService;
 import org.example.ssj3pj.services.VideoPromptSender;
 import org.springframework.scheduling.TaskScheduler;
@@ -20,6 +22,7 @@ import java.util.Date;
 public class DynamicVideoScheduler {
 
     private final TaskScheduler taskScheduler;
+    private final JobRepository jobRepository;
     private final EnvironmentQueryService environmentQueryService;
     private final VideoPromptSender sender;
     private final VideoRequestService videoRequestService;
@@ -65,11 +68,19 @@ public class DynamicVideoScheduler {
             log.warn("[SCHED] No request data in Redis for job {}", jobId);
             return;
         }
-
-        EnvironmentSummaryDto summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
-        if (summary == null) {
-            log.warn("[SCHED] No ES data for locationCode={} job={}", data.getLocationCode(), jobId);
-            return;
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new RuntimeException("job not found by Id : " + jobId));
+        EnvironmentSummaryDto summary = null;
+        if(job.getUseCitydata()){
+            log.info("Citydata used!");
+            summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
+            if (summary == null) {
+                log.warn("[SCHED] No ES data for locationCode={} job={}", data.getLocationCode(), jobId);
+                return;
+            }
+        }
+        else{
+            log.info("Citydata not used!");
         }
 
         try {

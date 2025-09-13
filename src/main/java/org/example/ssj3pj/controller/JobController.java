@@ -49,7 +49,10 @@ public class JobController {
     @PostMapping(path = "/confirm", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateJobResponse> createJob(@RequestBody CreateJobRequest req, HttpServletRequest request) {
         String userName = extractUserName(request);
-        String mascotImgKey = mascotImageRepository.findByRegionCode(req.locationCode()).get().getMascotImageKey();
+        String mascotImgKey = null;
+        if(req.mascot()){
+            mascotImgKey = mascotImageRepository.findByRegionCode(req.locationCode()).get().getMascotImageKey();
+        }
         validateS3Key(req.key());
         String srcImgkey = req.key();
         String pureKey = srcImgkey.startsWith("images/") ? srcImgkey.substring("images/".length()) : srcImgkey;
