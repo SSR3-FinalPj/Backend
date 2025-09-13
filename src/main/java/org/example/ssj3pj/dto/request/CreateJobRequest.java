@@ -6,5 +6,7 @@ public record CreateJobRequest(
         @NotBlank String key,
         @NotBlank String locationCode,
         String prompt_text,
-        @NotBlank String platform
+        @NotBlank String platform,
+        @NotBlank boolean mascot,
+        @NotBlank boolean city
 ) {}

@@ -15,6 +15,7 @@ public interface JobResultRepository extends JpaRepository<JobResult, Long> {
             "JOIN jr.job j " +
             "WHERE j.user.id = :userId")
     List<JobResult> findAllByUserId(Long userId);
+//    Optional<JobResult> findById(Long resultId);
 
     Optional<JobResult> findByIdAndJob_User_Id(Long resultId, Long userId);
 
@@ -30,4 +31,5 @@ public interface JobResultRepository extends JpaRepository<JobResult, Long> {
             "AND jr.ytUpload IS NOT NULL " +
             "AND jr.rdUpload IS NOT NULL")
     List<Long> findResultIdsUploadedToBoth(Long userId);
+    JobResult findByResultKey(String resultKey);
 }

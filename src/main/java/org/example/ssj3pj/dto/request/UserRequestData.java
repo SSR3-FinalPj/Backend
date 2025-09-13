@@ -15,4 +15,5 @@ public class UserRequestData {
     private String prompttext;
     private String platform;
     private boolean isClient; //shutdown 대신입니다.
+    private int step;
 }

@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface JobRepository extends JpaRepository<Job, Long> {
     Optional<Job> findTopByUserIdOrderByCreatedAtDesc(Long userId);
     Job findBySourceImageKey(String sourceImageKey);
-    
     /** 사용자의 모든 Job을 생성일 역순으로 조회 */
     List<Job> findByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Job> findAllByParentResultId(Long resultId);
 }

@@ -23,7 +23,7 @@ public class JobResultConsumer {
     private final JobRepository jobRepository;
     private final JobService jobService;
 
-    @KafkaListener(topics = "video-callback", groupId = "${VIDEO_GENERATED_CONSUMER:video-generated-consumers-default}")
+    @KafkaListener(topics = "media-callback", groupId = "${VIDEO_GENERATED_CONSUMER:video-generated-consumers-default}")
     public void consume(String message, Acknowledgment acknowledgment) {
         try {
             JobResultCreatedEvent event = objectMapper.readValue(message, JobResultCreatedEvent.class);
