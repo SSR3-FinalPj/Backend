@@ -715,7 +715,7 @@ public class InitMascotImageConfig {
                     .orElseGet(() -> mascotImageRepository.save(
                             MascotImage.builder()
                                     .regionCode("POI100")
-                                    .mascotImageKey("gwacheon.jpg") //과천시 마스코트 추가해야함
+                                    .mascotImageKey("gwacheon.jpg")
                                     .build()
                     ));
             mascotImageRepository.findByRegionCode("POI101")
