@@ -61,7 +61,7 @@ public class Job {
     private JobResult parentResult;
 
     @Column(name = "use_citydata")
-    private boolean useCitydata;
+    private Boolean useCitydata;
 
     @Column(name = "mascot_image_key", length = 500)
     private String mascotImageKey;
