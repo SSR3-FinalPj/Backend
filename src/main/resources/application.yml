@@ -24,9 +24,10 @@ management:
     health:
       show-details: when-authorized
       show-components: always
+      probes:
+        enabled: true
   server:
     port: 8080  # 같은 포트 사용 (보안상 분리 시 8081)
-  # Prometheus 메트릭 활성화 (선택사항)
   prometheus:
     metrics:
       export:
