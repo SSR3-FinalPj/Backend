@@ -1,4 +1,5 @@
 package org.example.ssj3pj.services.Reddit;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.dto.reddit.RedditUploadRequestDto;
@@ -7,7 +8,6 @@ import org.example.ssj3pj.entity.JobResult;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.JobResultRepository;
 import org.example.ssj3pj.repository.UsersRepository;
-import org.example.ssj3pj.services.Reddit.RedditUploadService;
 import org.example.ssj3pj.services.SseHub;
 import org.example.ssj3pj.services.StorageService;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ import static org.springframework.http.HttpStatus.*;
 @RequiredArgsConstructor
 public class RedditJobUploadService {
 
-    private final RedditUploadService redditUploadService;  // 실제 Reddit API 호출
+    private final RedditUploadService redditUploadService;  // Reddit API 호출
     private final StorageService storageService;
     private final JobResultRepository jobResultRepository;
     private final UsersRepository usersRepository;
@@ -48,29 +48,25 @@ public class RedditJobUploadService {
             // 2. S3에서 임시 파일 다운로드
             tempFile = storageService.downloadToTemporary(jobResult.getResultKey());
 
-            // 3. 썸네일 URL 생성 (비디오인 경우)
-            String thumbnailUrl = null;
+            String posterUrl = null;
             if ("video".equalsIgnoreCase(jobResult.getType())) {
-                String mascotImageKey = jobResult.getJob().getMascotImageKey();
-
-                if (mascotImageKey == null || mascotImageKey.isBlank()) {
-                    mascotImageKey = "yeongdeungpo.png"; // 기본 마스코트 이미지 키
+                String sourceImageKey = jobResult.getJob().getSourceImageKey();  // jobs.source_image_key
+                if (sourceImageKey != null && !sourceImageKey.isBlank()) {
+                    posterUrl = storageService.getPublicUrl(sourceImageKey);
                 }
-
-                thumbnailUrl = storageService.getPublicUrl(mascotImageKey);
             }
-
-            // 4. Reddit 업로드 실행 (postId 반환)
+            // 3. Reddit 업로드 실행 (postId 반환)
             String postId = redditUploadService.uploadMediaPost(
                     userId,
                     request.getSubreddit(),
                     request.getTitle(),
                     tempFile.toFile(),
                     jobResult.getType(),
-                    thumbnailUrl
+                    posterUrl
             );
 
-            String postUrl = "https://www.reddit.com/comments/" + postId;
+            // ✅ 표준 Reddit URL (/r/{subreddit}/comments/{postId})
+            String postUrl = "https://www.reddit.com/r/" + request.getSubreddit() + "/comments/" + postId;
 
             // 4. 성공 결과 생성
             RedditUploadResultDto result = RedditUploadResultDto.builder()
@@ -84,7 +80,7 @@ public class RedditJobUploadService {
             // 5. SSE 알림 발송
             sseHub.notifyRedditUploadCompleted(userId, postId);
 
-            log.info("Reddit 업로드 완료: postId={}", postId);
+            log.info("Reddit 업로드 완료: postId={}, url={}", postId, postUrl);
             return result;
 
         } catch (Exception e) {
