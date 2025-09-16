@@ -34,18 +34,18 @@ management:
         enabled: true
 
 # 배포시 이거로 수정
-spring:
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:youtube_db}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASS:pass1234}
-
 #spring:
 #  datasource:
-#    url: jdbc:postgresql://localhost:5432/youtube_db
-#    username: postgres
-#    password: pass1234
-#    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:youtube_db}
+#    username: ${DB_USER:postgres}
+#    password: ${DB_PASS:pass1234}
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/youtube_db
+    username: postgres
+    password: pass1234
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -165,7 +165,3 @@ sse:
   dev:
     allow-userid-param: false
 
-logging:
-  level:
-    redis.clients.jedis: DEBUG
-    org.springframework.data.redis: DEBUG
