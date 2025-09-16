@@ -9,12 +9,10 @@ import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.repository.JobResultRepository;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.services.SseHub;
-import org.example.ssj3pj.services.StorageService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.nio.file.Path;
 
 import static org.springframework.http.HttpStatus.*;
 
@@ -24,10 +22,13 @@ import static org.springframework.http.HttpStatus.*;
 public class RedditJobUploadService {
 
     private final RedditUploadService redditUploadService;  // Reddit API 호출
-    private final StorageService storageService;
     private final JobResultRepository jobResultRepository;
     private final UsersRepository usersRepository;
     private final SseHub sseHub;
+
+    // ✅ S3 bucket 이름을 application.yml에서 주입
+    @Value("${app.s3.bucket:ssr-ai-video}")
+    private String s3Bucket;
 
     /**
      * JobResult를 Reddit에 업로드
@@ -36,34 +37,32 @@ public class RedditJobUploadService {
     public RedditUploadResultDto uploadJobResult(Long resultId,
                                                  RedditUploadRequestDto request,
                                                  Long userId) {
-        Path tempFile = null;
-
         try {
             // 1. 권한 확인 및 데이터 조회
             JobResult jobResult = validateAndGetJobResult(resultId, userId);
 
-            log.info("Reddit 업로드 시작: resultId={}, userId={}, subreddit={}, kind={}",
+            log.info("📤 Reddit 업로드 시작: resultId={}, userId={}, subreddit={}, kind={}",
                     resultId, userId, request.getSubreddit(), jobResult.getType());
 
-            // 2. S3에서 임시 파일 다운로드
-            tempFile = storageService.downloadToTemporary(jobResult.getResultKey());
-
-            String posterUrl = null;
+            // 2. 썸네일 key (비디오일 경우만 사용)
+            String posterKey = null;
             if ("video".equalsIgnoreCase(jobResult.getType())) {
-                String sourceImageKey = jobResult.getJob().getSourceImageKey();  // jobs.source_image_key
-                if (sourceImageKey != null && !sourceImageKey.isBlank()) {
-                    posterUrl = storageService.getPublicUrl(sourceImageKey);
-                }
+                posterKey = jobResult.getJob().getSourceImageKey();
             }
-            // 3. Reddit 업로드 실행 (postId 반환)
+
+            // 3. Reddit 업로드 실행
             String postId = redditUploadService.uploadMediaPost(
                     userId,
                     request.getSubreddit(),
                     request.getTitle(),
-                    tempFile.toFile(),
+                    s3Bucket,
+                    jobResult.getResultKey(),
                     jobResult.getType(),
-                    posterUrl
+                    posterKey
             );
+
+            // ✅ DB에 Reddit postId 저장
+            jobResult.setRdUpload(postId);
 
             // ✅ 표준 Reddit URL (/r/{subreddit}/comments/{postId})
             String postUrl = "https://www.reddit.com/r/" + request.getSubreddit() + "/comments/" + postId;
@@ -80,11 +79,11 @@ public class RedditJobUploadService {
             // 5. SSE 알림 발송
             sseHub.notifyRedditUploadCompleted(userId, postId);
 
-            log.info("Reddit 업로드 완료: postId={}, url={}", postId, postUrl);
+            log.info("✅ Reddit 업로드 완료: postId={}, url={}", postId, postUrl);
             return result;
 
         } catch (Exception e) {
-            log.error("Reddit 업로드 실패: resultId={}", resultId, e);
+            log.error("❌ Reddit 업로드 실패: resultId={}, error={}", resultId, e.getMessage(), e);
 
             return RedditUploadResultDto.builder()
                     .success(false)
@@ -92,14 +91,9 @@ public class RedditJobUploadService {
                     .resultId(resultId)
                     .title(request.getTitle())
                     .build();
-
-        } finally {
-            // 6. 임시 파일 정리
-            if (tempFile != null) {
-                storageService.cleanupTemporaryFile(tempFile);
-            }
         }
     }
+
 
     /**
      * 권한 확인 및 JobResult 조회
