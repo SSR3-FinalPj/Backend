@@ -45,6 +45,25 @@ public class JobResultController {
 
         return jobResultService.getUserJobResults(userId);
     }
+    @Tag(name = "dashboard", description = "생성한 미디어 전체")
+    @GetMapping("/rootnode")
+    public List<JobResultDto> getMyRootNodes(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth == null || !auth.startsWith("Bearer ")) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "missing bearer token");
+        }
+
+        String token = auth.substring(7);
+
+        Long userId;
+        try {
+            userId = jwtUtils.getUidAsLong(token);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid token");
+        }
+
+        return jobResultService.getUserRootNodes(userId);
+    }
 
 
     @Tag(name = "dashboard", description = "YouTube+Reddit 업로드 완료된 result_id 조회")

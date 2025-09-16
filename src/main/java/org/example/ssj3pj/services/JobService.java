@@ -154,6 +154,11 @@ public class JobService {
     public ResultNodeDto buildResultTree(JobResult jobResult) {
         ResultNodeDto node = ResultNodeDto.builder()
                 .resultId(jobResult.getId())
+                .jobId(jobResult.getJob().getId())
+                .type(jobResult.getType())
+                .status(jobResult.getStatus())
+                .resultKey(jobResult.getResultKey())
+                .createdAt(jobResult.getCreatedAt())
                 .children(new ArrayList<>())
                 .build();
 

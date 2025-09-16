@@ -2,6 +2,8 @@ package org.example.ssj3pj.repository;
 
 import org.example.ssj3pj.entity.Job;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,4 +16,8 @@ public interface JobRepository extends JpaRepository<Job, Long> {
     /** 사용자의 모든 Job을 생성일 역순으로 조회 */
     List<Job> findByUserIdOrderByCreatedAtDesc(Long userId);
     List<Job> findAllByParentResultId(Long resultId);
+    @Query("SELECT j FROM Job j " +
+            "WHERE j.user.id = :userId " +
+            "AND j.parentResult IS NULL")
+    List<Job> findAllByUserIdAndNoParent(@Param("userId") Long userId);
 }

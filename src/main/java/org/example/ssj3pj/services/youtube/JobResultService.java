@@ -8,10 +8,12 @@ import org.example.ssj3pj.dto.BothUploadDto;
 import org.example.ssj3pj.dto.dashboard.JobResultDto;
 import org.example.ssj3pj.dto.reddit.RedditContentDetailDto;
 import org.example.ssj3pj.dto.youtube.YoutubeContentDetailDto;
+import org.example.ssj3pj.entity.Job;
 import org.example.ssj3pj.entity.JobResult;
 import org.example.ssj3pj.entity.RedditMetadata;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.entity.YoutubeMetadata;
+import org.example.ssj3pj.repository.JobRepository;
 import org.example.ssj3pj.repository.JobResultRepository;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.repository.YoutubeMetadataRepository;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -32,6 +35,7 @@ public class JobResultService {
     private final JobResultRepository jobResultRepository;
     private final YoutubeMetadataRepository youtubeMetadataRepository;
     private final UsersRepository usersRepository;
+    private final JobRepository jobRepository;
     private final YoutubeQueryService youtubeQueryService;
     private final ContentsService contentsService;
 
@@ -39,6 +43,24 @@ public class JobResultService {
         return jobResultRepository.findAllByUserId(userId).stream()
                 .map(r -> new JobResultDto(r.getId(), r.getCreatedAt()))
                 .toList();
+    }
+    public List<JobResultDto> getUserRootNodes(Long userId) {
+        List<Job> jobs = jobRepository.findAllByUserIdAndNoParent(userId);
+        List<JobResultDto> resultDtos = new ArrayList<>();
+        for (Job job : jobs){
+            if (job.getResults() != null && !job.getResults().isEmpty()) {
+                // id 기준으로 가장 작은 JobResult 선택
+                job.getResults().stream()
+                        .min(Comparator.comparing(JobResult::getId))
+                        .ifPresent(firstResult ->
+                                resultDtos.add(new JobResultDto(
+                                        firstResult.getId(),
+                                        firstResult.getCreatedAt()
+                                ))
+                        );
+            }
+        }
+        return resultDtos;
     }
     public List<BothUploadDto> getResultIdsUploadedToBoth(Long userId) throws IOException{
         List<Long> jobResultIds = jobResultRepository.findResultIdsUploadedToBoth(userId);
