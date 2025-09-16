@@ -163,11 +163,12 @@ public class StorageService {
         return ".mp4"; // 기본값
     }
 
-    /** S3 객체의 공개 URL 생성 */
     public String getPublicUrl(String key) {
         if (key == null || key.isBlank()) {
             return null;
         }
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, awsRegion, key);
+        String url = String.format("https://%s.s3.%s.amazonaws.com/%s", bucket, awsRegion, key);
+        log.info("🌐 생성된 Public URL: {}", url);   // ✅ 여기 추가
+        return url;
     }
 }

@@ -13,6 +13,26 @@ jwt:
   access-token-expiration: 900000        # 15분 (ms)
   refresh-token-expiration: 1209600000   # 14일 (ms)
 
+# Spring Boot Actuator Management 설정 (k6 부하 테스트용)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+      probes:
+        enabled: true
+  server:
+    port: 8080  # 같은 포트 사용 (보안상 분리 시 8081)
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
 # 배포시 이거로 수정
 #spring:
 #  datasource:
@@ -152,7 +172,3 @@ sse:
   dev:
     allow-userid-param: false
 
-logging:
-  level:
-    redis.clients.jedis: DEBUG
-    org.springframework.data.redis: DEBUG

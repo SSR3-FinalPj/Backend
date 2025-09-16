@@ -7,18 +7,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.entity.User.RedditToken;
 import org.example.ssj3pj.repository.RedditTokenRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.file.Files;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -32,13 +34,21 @@ public class RedditUploadService {
     private final RestTemplate restTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final S3Client s3Client;
 
     /**
-     * Reddit에 미디어 업로드 (이미지 or 비디오)
+     * Python 코드 흐름 + postId 보장 (submitted.json 조회 fallback)
      */
-    public String uploadMediaPost(Long userId, String subreddit, String title, File mediaFile, String kind, String thumbnailUrl) {
-        if (!"image".equalsIgnoreCase(kind) && !"video".equalsIgnoreCase(kind)) {
-            throw new IllegalArgumentException("지원하지 않는 kind 값: " + kind);
+    public String uploadMediaPost(Long userId,
+                                  String subreddit,
+                                  String title,
+                                  String bucket,
+                                  String key,
+                                  String kind,
+                                  String posterKey) {
+
+        if (!"video".equalsIgnoreCase(kind)) {
+            throw new IllegalArgumentException("현재 Python 흐름은 video 업로드 기준입니다.");
         }
 
         String accessToken = tokenGuard.getValidAccessToken(userId);
@@ -47,64 +57,70 @@ public class RedditUploadService {
                 .map(RedditToken::getRedditUsername)
                 .orElseThrow(() -> new IllegalStateException("해당 사용자 Reddit 계정 연동 정보가 없습니다."));
 
-        String response;
-        if ("image".equalsIgnoreCase(kind)) {
-            String assetUrl = uploadImage(accessToken, mediaFile, redditUsername);
-            response = submitPost(accessToken, subreddit, title, "image", redditUsername, assetUrl, null, null);
-        } else {
-            String videoUrl = uploadVideo(accessToken, mediaFile, redditUsername);
-            response = submitPost(accessToken, subreddit, title, "video", redditUsername, videoUrl, null, thumbnailUrl);
+        // === 1) 업로드 lease 요청
+        Map<String, Object> lease = obtainUploadLease(accessToken, key, "video/mp4", redditUsername);
+        String uploadUrl = normalizeUrl((String) lease.get("action"));
+        List<Map<String, String>> fields = (List<Map<String, String>>) lease.get("fields");
+
+        // === 2) Reddit presigned로 실제 업로드
+        try (ResponseInputStream<?> s3obj = s3Client.getObject(GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .build())) {
+            uploadToRedditS3(uploadUrl, s3obj, key, "video/mp4", fields);
+        } catch (IOException e) {
+            throw new RuntimeException("비디오 업로드 실패", e);
         }
-        // 우선 일반 경로로 postId 추출 시도
-        try {
-            return extractPostIdFromResponse(response);
-        } catch (RuntimeException ex) {
-            // 비디오 게시물의 경우 Reddit이 즉시 id를 주지 않을 수 있어 보조 탐색 시도
-            if ("video".equalsIgnoreCase(kind)) {
-                try {
-                    String found = pollRecentSubmittedPostId(accessToken, redditUsername, subreddit, title, 12, 1500);
-                    if (found != null && !found.isEmpty()) return found;
-                } catch (Exception ignore) { }
+
+        // === 3) video_url 만들기
+        String fieldKey = fields.stream()
+                .filter(f -> "key".equals(f.get("name")))
+                .map(f -> f.get("value"))
+                .findFirst()
+                .orElseThrow();
+        String videoUrl = joinUrl(uploadUrl, fieldKey);
+
+        // === 4) 썸네일(옵션)
+        String posterUrl = null;
+        if (posterKey != null && !posterKey.isBlank()) {
+            Map<String, Object> posterLease = obtainUploadLease(accessToken, posterKey, "image/jpeg", redditUsername);
+            String pUploadUrl = normalizeUrl((String) posterLease.get("action"));
+            List<Map<String, String>> pFields = (List<Map<String, String>>) posterLease.get("fields");
+
+            try (ResponseInputStream<?> s3obj = s3Client.getObject(GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(posterKey)
+                    .build())) {
+                uploadToRedditS3(pUploadUrl, s3obj, posterKey, "image/jpeg", pFields);
+            } catch (IOException e) {
+                throw new RuntimeException("포스터 업로드 실패", e);
             }
-            throw ex;
+
+            String posterFieldKey = pFields.stream()
+                    .filter(f -> "key".equals(f.get("name")))
+                    .map(f -> f.get("value"))
+                    .findFirst()
+                    .orElseThrow();
+            posterUrl = joinUrl(pUploadUrl, posterFieldKey);
         }
+
+        // === 5) submit 호출 (kind=video + url=video_url)
+        String response = submitVideoPost(accessToken, subreddit, title, videoUrl, posterUrl, redditUsername);
+
+        // === 6) postId 추출 (없으면 submitted.json 조회)
+        return extractPostIdFromResponse(response, redditUsername, accessToken);
     }
 
-    /** ✅ 이미지 업로드 */
-    private String uploadImage(String accessToken, File mediaFile, String redditUsername) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        headers.set("User-Agent", "ssj3pj:backend:1.0 (by /u/" + redditUsername + ")");
-
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("file", new FileSystemResource(mediaFile));
-
-        HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(body, headers);
-
-        Map<String, Object> response = restTemplate.postForObject(
-                "https://oauth.reddit.com/api/media/asset.json",
-                request,
-                Map.class
-        );
-
-        log.info("Reddit image asset upload response={}", response);
-
-        Map<String, Object> args = (Map<String, Object>) response.get("args");
-        return (String) args.get("asset_url"); // ✅ image는 url
-    }
-
-    /** ✅ 비디오 업로드 */
-    private String uploadVideo(String accessToken, File videoFile, String redditUsername) {
-        // 1. Reddit 업로드 세션 생성
+    /** asset.json 요청 */
+    private Map<String, Object> obtainUploadLease(String accessToken, String filename, String mimetype, String redditUsername) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         headers.set("User-Agent", "ssj3pj:backend:1.0 (by /u/" + redditUsername + ")");
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("filepath", videoFile.getName());
-        body.add("mimetype", "video/mp4");
+        body.add("filepath", filename);
+        body.add("mimetype", mimetype);
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -114,147 +130,84 @@ public class RedditUploadService {
                 Map.class
         );
 
-        log.info("Reddit video asset init response={}", response);
-
+        log.info("Reddit lease response={}", response);
         Map<String, Object> args = (Map<String, Object>) response.get("args");
-        Map<String, Object> asset = (Map<String, Object>) response.get("asset");
 
-        String assetId = (String) asset.get("asset_id");
-        String uploadUrl = (String) args.get("action");
-
-        if (uploadUrl.startsWith("//")) {
-            uploadUrl = "https:" + uploadUrl;
-        }
-
-        // S3 key 찾기 (fields에서 key 값 추출)
-        String s3Key = null;
-        java.util.List<Map<String, String>> fields = (java.util.List<Map<String, String>>) args.get("fields");
-        for (Map<String, String> field : fields) {
-            if ("key".equals(field.get("name"))) {
-                s3Key = field.get("value");
-                break;
-            }
-        }
-
-        // 2. Presigned URL로 S3 업로드 (POST) - HttpURLConnection 사용
-        try {
-            uploadToS3WithHttpConnection(uploadUrl, videoFile, fields);
-        } catch (IOException e) {
-            throw new RuntimeException("S3 업로드 중 오류 발생", e);
-        }
-
-        // 3. 제출에 사용할 v.redd.it URL로 변환 (레딧이 호스팅 비디오로 인식)
-        String videoUrl = "https://v.redd.it/" + assetId;
-        log.info("업로드된 비디오 URL(v.redd.it): {}", videoUrl);
-        return videoUrl;
+        Map<String, Object> result = new HashMap<>();
+        result.put("action", args.get("action"));
+        result.put("fields", args.get("fields"));
+        return result;
     }
 
-    /** ✅ HttpURLConnection을 사용한 S3 업로드 */
-    private void uploadToS3WithHttpConnection(String uploadUrl, File videoFile, java.util.List<Map<String, String>> fields) throws IOException {
+    /** S3 → Reddit 업로드 */
+    private void uploadToRedditS3(String uploadUrl,
+                                  InputStream s3obj,
+                                  String key,
+                                  String mimeType,
+                                  List<Map<String, String>> fields) throws IOException {
+
         URL url = new URL(uploadUrl);
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 
-        String boundary = "----formdata-" + System.currentTimeMillis();
-
-        // POST 연결 설정
+        String boundary = "----redditS3" + UUID.randomUUID().toString().replace("-", "");
         connection.setDoOutput(true);
         connection.setRequestMethod("POST");
         connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
-        // multipart form data 생성
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintWriter writer = new PrintWriter(new OutputStreamWriter(baos, "UTF-8"));
+        try (OutputStream out = connection.getOutputStream();
+             PrintWriter writer = new PrintWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8), true)) {
 
-        // 모든 form fields 추가
-        for (Map<String, String> field : fields) {
-            writer.append("--").append(boundary).append("\r\n");
-            writer.append("Content-Disposition: form-data; name=\"").append(field.get("name")).append("\"").append("\r\n");
-            writer.append("\r\n");
-            writer.append(field.get("value")).append("\r\n");
-        }
-
-        // 파일 field 추가
-        writer.append("--").append(boundary).append("\r\n");
-        writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(videoFile.getName()).append("\"").append("\r\n");
-        writer.append("Content-Type: video/mp4").append("\r\n");
-        writer.append("\r\n");
-        writer.flush();
-
-        // 파일 내용 추가
-        baos.write(Files.readAllBytes(videoFile.toPath()));
-
-        writer = new PrintWriter(new OutputStreamWriter(baos, "UTF-8"));
-        writer.append("\r\n");
-        writer.append("--").append(boundary).append("--").append("\r\n");
-        writer.flush();
-        writer.close();
-
-        byte[] postData = baos.toByteArray();
-
-        // Content-Length 설정 (사용자 제안 방식)
-        connection.setFixedLengthStreamingMode(postData.length);
-        connection.connect();
-
-        // 데이터 전송
-        try (OutputStream out = connection.getOutputStream()) {
-            out.write(postData);
-            out.flush();
-        }
-
-        // 응답 확인
-        int responseCode = connection.getResponseCode();
-        if (responseCode < 200 || responseCode >= 300) {
-            String errorResponse = "";
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()))) {
-                String line;
-                StringBuilder sb = new StringBuilder();
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line);
-                }
-                errorResponse = sb.toString();
-            } catch (Exception e) {
-                // ignore
+            for (Map<String, String> field : fields) {
+                writer.append("--").append(boundary).append("\r\n");
+                writer.append("Content-Disposition: form-data; name=\"").append(field.get("name")).append("\"\r\n\r\n");
+                writer.append(field.get("value")).append("\r\n");
             }
-            throw new RuntimeException("S3 업로드 실패: HTTP " + responseCode + " - " + errorResponse);
+
+            writer.append("--").append(boundary).append("\r\n");
+            writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(key).append("\"\r\n");
+            writer.append("Content-Type: ").append(mimeType).append("\r\n\r\n");
+            writer.flush();
+
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = s3obj.read(buffer)) != -1) {
+                out.write(buffer, 0, len);
+            }
+            out.flush();
+
+            writer.append("\r\n--").append(boundary).append("--\r\n");
+            writer.flush();
         }
 
-        log.info("S3 업로드 성공: HTTP {}", responseCode);
+        int code = connection.getResponseCode();
+        if (code < 200 || code >= 300) {
+            throw new RuntimeException("Reddit S3 업로드 실패: HTTP " + code);
+        }
+        log.info("✅ Reddit S3 업로드 성공: HTTP {}", code);
     }
 
-    /** ✅ Submit API 호출 */
-    private String submitPost(String accessToken,
-                              String subreddit,
-                              String title,
-                              String kind,
-                              String redditUsername,
-                              String assetUrl,   // 이미지 또는 비디오 URL
-                              String mediaId,    // 사용 안함
-                              String thumbnailUrl) { // 비디오 썸네일
+    /** submit 호출 */
+    private String submitVideoPost(String accessToken,
+                                   String subreddit,
+                                   String title,
+                                   String videoUrl,
+                                   String posterUrl,
+                                   String redditUsername) {
+
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.set("User-Agent", "ssj3pj:backend:1.0 (by /u/" + redditUsername + ")");
-        // JSON 응답을 강제하도록 Accept 지정
-        headers.setAccept(java.util.Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-        body.add("sr", subreddit);
-        body.add("kind", kind);
-        body.add("title", title);
-        // Reddit 비디오 제출은 url 대신 video_url을 사용해야 안정적
-        if ("video".equalsIgnoreCase(kind)) {
-            body.add("video_url", assetUrl);
-        } else {
-            body.add("url", assetUrl);
-        }
-        // Reddit이 JSON을 반환하도록 강제
         body.add("api_type", "json");
-        // JSON 이스케이프 문제 방지용 옵션(무해)
-        body.add("raw_json", "1");
-
-        // 비디오인 경우, 썸네일 URL 추가
-        if ("video".equalsIgnoreCase(kind) && thumbnailUrl != null && !thumbnailUrl.isBlank()) {
-            body.add("video_poster_url", thumbnailUrl);
+        body.add("sr", subreddit);
+        body.add("title", title);
+        body.add("kind", "video");
+        body.add("url", videoUrl);
+        body.add("resubmit", "true");
+        if (posterUrl != null) {
+            body.add("video_poster_url", posterUrl);
         }
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
@@ -269,105 +222,56 @@ public class RedditUploadService {
         return response;
     }
 
-    /** ✅ postId 추출 */
-    private String extractPostIdFromResponse(String redditResponse) {
-        // 1차: JSON 경로에서 추출
+    /** video_url 합성 */
+    private String joinUrl(String base, String key) {
+        if (!base.endsWith("/")) base = base + "/";
+        return base + key;
+    }
+
+    private String normalizeUrl(String u) {
+        if (u.startsWith("//")) return "https:" + u;
+        return u;
+    }
+
+    /** postId 추출 (없으면 submitted.json fallback) */
+    private String extractPostIdFromResponse(String redditResponse,
+                                             String redditUsername,
+                                             String accessToken) {
         try {
             JsonNode root = objectMapper.readTree(redditResponse);
             JsonNode data = root.path("json").path("data");
+
+            // 1) id/name 바로 있으면 반환
             String postId = data.path("id").asText(null);
-            if (postId != null && !postId.isEmpty()) {
-                return postId;
-            }
+            if (postId != null && !postId.isEmpty()) return postId;
 
-            // 일부 경우 name: "t3_<id>" 만 내려올 수 있음
             String name = data.path("name").asText(null);
-            if (name != null && name.startsWith("t3_")) {
-                return name.substring(3);
-            }
+            if (name != null && name.startsWith("t3_")) return name.substring(3);
 
-            // 혹시 redirect/permalink에 comments/<id>/ 형태가 있을 수 있음
-            String redirect = data.path("redirect").asText(null);
-            if (redirect != null) {
-                String fromRedirect = extractIdFromCommentsUrl(redirect);
-                if (fromRedirect != null) return fromRedirect;
-            }
-            String urlField = data.path("url").asText(null);
-            if (urlField != null) {
-                String fromUrl = extractIdFromCommentsUrl(urlField);
-                if (fromUrl != null) return fromUrl;
-            }
+            // 2) 없으면 최신 글 조회
+            String url = "https://oauth.reddit.com/user/" + redditUsername + "/submitted.json?limit=1";
 
-            // JSON 파싱은 됐지만 id를 못 찾음
-            throw new RuntimeException("Reddit 응답에서 postId를 찾을 수 없습니다: " + truncate(redditResponse, 500));
-        } catch (Exception jsonEx) {
-            // 2차: 비JSON(jquery) 응답에 대한 폴백 정규식
-            try {
-                java.util.regex.Matcher m1 = java.util.regex.Pattern.compile("\\bt3_([a-z0-9]+)\\b").matcher(redditResponse);
-                if (m1.find()) return m1.group(1);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            headers.set("User-Agent", "ssj3pj:backend:1.0 (by /u/" + redditUsername + ")");
 
-                java.util.regex.Matcher m2 = java.util.regex.Pattern.compile("/comments/([a-z0-9]+)/").matcher(redditResponse);
-                if (m2.find()) return m2.group(1);
-            } catch (Exception ignore) { }
-            throw new RuntimeException("Reddit 응답 파싱 실패", jsonEx);
-        }
-    }
+            HttpEntity<Void> request = new HttpEntity<>(headers);
 
-    private String extractIdFromCommentsUrl(String url) {
-        try {
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("/comments/([a-z0-9]+)/").matcher(url);
-            if (m.find()) return m.group(1);
-        } catch (Exception ignore) { }
-        return null;
-    }
+            ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, request, String.class);
+            JsonNode listing = objectMapper.readTree(resp.getBody());
+            JsonNode children = listing.path("data").path("children");
 
-    private String truncate(String s, int max) {
-        if (s == null) return null;
-        return s.length() <= max ? s : s.substring(0, max) + "...";
-    }
-
-    /**
-     * 비디오 업로드 직후 id가 응답에 없는 경우, 사용자의 최근 제출 목록에서 제목/서브레딧으로 역추적
-     */
-    private String findRecentSubmittedPostId(String accessToken, String redditUsername, String subreddit, String title) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.set("User-Agent", "ssj3pj:backend:1.0 (by /u/" + redditUsername + ")");
-        headers.setAccept(java.util.Collections.singletonList(MediaType.APPLICATION_JSON));
-
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-
-        String url = "https://oauth.reddit.com/user/" + redditUsername + "/submitted.json?limit=10";
-        try {
-            String body = restTemplate.exchange(url, HttpMethod.GET, request, String.class).getBody();
-            if (body == null) return null;
-
-            JsonNode root = objectMapper.readTree(body);
-            JsonNode children = root.path("data").path("children");
-            if (children.isArray()) {
-                for (JsonNode child : children) {
-                    JsonNode d = child.path("data");
-                    String t = d.path("title").asText("");
-                    String sr = d.path("subreddit").asText("");
-                    boolean isVideo = d.path("is_video").asBoolean(false);
-                    if (isVideo && title.equals(t) && subreddit.equalsIgnoreCase(sr)) {
-                        String id = d.path("id").asText("");
-                        if (!id.isEmpty()) return id;
-                    }
+            if (children.isArray() && children.size() > 0) {
+                String fullName = children.get(0).path("data").path("name").asText(null); // t3_xxx
+                if (fullName != null && fullName.startsWith("t3_")) {
+                    return fullName.substring(3);
                 }
             }
-        } catch (Exception e) {
-            log.warn("최근 제출 목록 조회 실패: {}", e.getMessage());
-        }
-        return null;
-    }
 
-    private String pollRecentSubmittedPostId(String accessToken, String redditUsername, String subreddit, String title, int attempts, long intervalMs) {
-        for (int i = 0; i < attempts; i++) {
-            String id = findRecentSubmittedPostId(accessToken, redditUsername, subreddit, title);
-            if (id != null && !id.isEmpty()) return id;
-            try { Thread.sleep(intervalMs); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+            throw new RuntimeException("postId 추출 실패 (submitted.json도 없음)");
+
+        } catch (Exception e) {
+            throw new RuntimeException("Reddit 응답 파싱 실패", e);
         }
-        return null;
     }
 }
