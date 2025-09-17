@@ -141,6 +141,9 @@ google:
   token-uri: https://oauth2.googleapis.com/token
   skew-seconds: 120
 
+Front:
+  front-url: ${FRONT}
+
 reddit:
   client-id: ${REDDIT_CLIENT_ID}
   client-secret: ${REDDIT_CLIENT_SECRET}
