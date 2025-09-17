@@ -65,7 +65,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   elasticsearch:
-    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    uris: ${ELASTICSEARCH_HOST:http://localhost:9200}
 
   data:
     redis:
