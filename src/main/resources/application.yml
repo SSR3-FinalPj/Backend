@@ -46,6 +46,13 @@ spring:
     username: postgres
     password: pass1234
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10      # 동시에 사용할 수 있는 최대 커넥션 수
+      minimum-idle: 5           # 풀에서 유지할 최소 idle 커넥션 수
+      idle-timeout: 30000       # (ms) idle 커넥션을 유지하는 시간
+      max-lifetime: 1800000     # (ms) 커넥션의 최대 수명
+      connection-timeout: 30000 # (ms) 커넥션을 얻기까지 기다리는 최대 시간
+      pool-name: HikariCP       # 풀 이름 (로그에 표시됨)
 
   jpa:
     hibernate:
