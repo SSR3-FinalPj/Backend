@@ -35,7 +35,7 @@ public class RedditAuthController {
     @Value("${reddit.redirect-uri}")  private String redirectUri;
     @Value("${reddit.authorize-url}") private String authorizeUrl;
     @Value("${reddit.scopes}")        private String scopes; // 예: "identity read submit"
-
+    @Value("${FRONT.front-url")       private String frontUrl;
     @Tag(name = "redditLogin", description = "Reddit 로그인 URL 생성")
     @GetMapping("/login-url")
     public ResponseEntity<String> getRedditLoginUrl(@AuthenticationPrincipal UserDetails userDetails) {
@@ -83,8 +83,6 @@ public class RedditAuthController {
 
         redditOAuthService.handleOAuthCallback(code, user);
 
-        String appRedirect = "http://localhost:5173"; //수정 예정
-
         String html = """
     <!doctype html>
     <html><head><meta charset="utf-8"><title>Reddit Linked</title></head>
@@ -105,7 +103,7 @@ public class RedditAuthController {
     </script>
     연결되었습니다. 이 창은 자동으로 닫히거나 리다이렉트됩니다.
     </body></html>
-    """.formatted(appRedirect);
+    """.formatted(frontUrl);
 
         response.setStatus(200);
         response.setContentType("text/html;charset=UTF-8");
