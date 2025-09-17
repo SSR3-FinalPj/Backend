@@ -224,7 +224,10 @@ public class RedditQueryService {
                     .toLocalDateTime();
 
             LocalDate uploadDate = createdDateTime.toLocalDate();
-
+            String url = postNode.path("url").asText(null);
+            if (postNode.path("domain").asText().equals("youtube.com")){
+                url = "https://www.reddit.com/r/Test_Posts/comments/" + postNode.path("id").asText();
+            }
             RedditContentDetailDto videoItem = RedditContentDetailDto.builder()
                     .postId(postNode.path("id").asText())
                     .uploadDate(String.valueOf(uploadDate))
@@ -235,7 +238,7 @@ public class RedditQueryService {
                     .score(postNode.path("score").asInt(0))
                     .subReddit(postNode.path("subreddit").asText(null))
                     .text(postNode.path("selftext").asText(null))
-                    .url(postNode.path("url").asText(null))
+                    .url(url)
                     .userName(postNode.path("author").asText(null))
                     .RDvideoUrl(safeGetVideoUrl(postNode))   // ✅ 수정
                     .build();

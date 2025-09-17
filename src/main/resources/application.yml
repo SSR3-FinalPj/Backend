@@ -13,6 +13,26 @@ jwt:
   access-token-expiration: 900000        # 15분 (ms)
   refresh-token-expiration: 1209600000   # 14일 (ms)
 
+# Spring Boot Actuator Management 설정 (k6 부하 테스트용)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+      probes:
+        enabled: true
+  server:
+    port: 8080  # 같은 포트 사용 (보안상 분리 시 8081)
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
 # 배포시 이거로 수정
 spring:
   datasource:
@@ -26,6 +46,13 @@ spring:
 #    username: postgres
 #    password: pass1234
 #    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10      # 동시에 사용할 수 있는 최대 커넥션 수
+      minimum-idle: 5           # 풀에서 유지할 최소 idle 커넥션 수
+      idle-timeout: 30000       # (ms) idle 커넥션을 유지하는 시간
+      max-lifetime: 1800000     # (ms) 커넥션의 최대 수명
+      connection-timeout: 30000 # (ms) 커넥션을 얻기까지 기다리는 최대 시간
+      pool-name: HikariCP       # 풀 이름 (로그에 표시됨)
 
   jpa:
     hibernate:
@@ -147,5 +174,5 @@ sse:
 
 logging:
   level:
-    redis.clients.jedis: DEBUG
-    org.springframework.data.redis: DEBUG
+    org.hibernate.SQL: OFF
+    org.hibernate.type.descriptor.sql: OFF

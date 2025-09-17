@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.ssj3pj.dto.BothUploadDto;
 import org.example.ssj3pj.dto.dashboard.DashboardYTDayStats;
 import org.example.ssj3pj.dto.dashboard.DashboardYTTotalStats;
 import org.example.ssj3pj.dto.youtube.*;
@@ -34,6 +35,35 @@ public class YoutubeQueryService {
 
     private static final String INDEX = "youtubedata";  // YouTube 인덱스명
 
+    public BothUploadDto findDetailForVideo(String esDocId, String videoId) throws IOException{
+        GetRequest request = new GetRequest.Builder()
+                .index(INDEX)
+                .id(esDocId)
+                .build();
+
+        GetResponse<JsonData> response = elasticsearchClient.get(request, JsonData.class);
+        if (!response.found()) {
+            throw new RuntimeException("❌ ES 문서 없음 (youtube): " + esDocId);
+        }
+
+        // 2. JsonNode 변환
+        JsonNode src = objectMapper.readTree(response.source().toJson().toString());
+
+        JsonNode videosNode = src.path("videos");
+        String uploadedAt = null;
+        String title = null;
+        for (JsonNode videoNode : videosNode){
+            if(videoNode.path("video_id").asText().equals(videoId)){
+                uploadedAt = videoNode.path("upload_date").asText();
+                title = videoNode.path("title").asText();
+                break;
+            }
+        }
+        return BothUploadDto.builder()
+                .uploadedAt(uploadedAt)
+                .title(title)
+                .build();
+    }
     public YTUploadRangeDto findAllVideoRangeDate(String esDocId, String channelId, LocalDate start, LocalDate end) throws IOException {
         GetRequest request = new GetRequest.Builder()
                 .index(INDEX)
