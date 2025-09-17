@@ -5,7 +5,7 @@ server:
         name: SID
         http-only: true
         secure: true        # 로컬 http로 테스트면 false, 운영 배포시 true 권장
-        same-site: none       # 도커라이징할 때는 none 권장
+        same-site: Lax       # 도커라이징할 때는 none 권장
 
 jwt:
   issuer: ssj3pj
