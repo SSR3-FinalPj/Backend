@@ -61,6 +61,7 @@ public class VideoPromptSender {
                                              String imageKey,
                                              String promptText,
                                              String platform,
+                                             boolean isInitial,
                                              boolean isClient) throws IOException {
         log.info("API START");
         Job job = jobRepository.findById(jobId)
