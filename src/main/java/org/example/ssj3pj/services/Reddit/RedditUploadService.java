@@ -61,11 +61,11 @@ public class RedditUploadService {
         Map<String, Object> lease = obtainUploadLease(accessToken, key, "video/mp4", redditUsername);
         String uploadUrl = normalizeUrl((String) lease.get("action"));
         List<Map<String, String>> fields = (List<Map<String, String>>) lease.get("fields");
-
+        log.info("key : {}", key);
         // === 2) Reddit presigned로 실제 업로드
         try (ResponseInputStream<?> s3obj = s3Client.getObject(GetObjectRequest.builder()
                 .bucket(bucket)
-                .key(key)
+                .key("video/" +key)
                 .build())) {
             uploadToRedditS3(uploadUrl, s3obj, key, "video/mp4", fields);
         } catch (IOException e) {
@@ -89,7 +89,7 @@ public class RedditUploadService {
 
             try (ResponseInputStream<?> s3obj = s3Client.getObject(GetObjectRequest.builder()
                     .bucket(bucket)
-                    .key(posterKey)
+                    .key("images/"+ posterKey)
                     .build())) {
                 uploadToRedditS3(pUploadUrl, s3obj, posterKey, "image/jpeg", pFields);
             } catch (IOException e) {

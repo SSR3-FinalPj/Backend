@@ -65,7 +65,7 @@ public class StorageService {
     public String presignGet(String key, String responseContentType) {
         var get = GetObjectRequest.builder()
                 .bucket(bucket)
-                .key(key)
+                .key("video/" +key)
                 .responseContentType(responseContentType)
                 .responseContentDisposition("inline")
                 .build();
@@ -121,7 +121,7 @@ public class StorageService {
             software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest =
                     software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
                             .bucket(bucket)
-                            .key(resultKey)
+                            .key("video/"+resultKey)
                             .build();
 
             // S3에서 파일을 직접 임시 파일에 다운로드
