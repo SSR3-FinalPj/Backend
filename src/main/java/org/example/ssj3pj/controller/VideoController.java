@@ -2,6 +2,7 @@ package org.example.ssj3pj.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.ssj3pj.repository.JobResultRepository;
 import org.example.ssj3pj.security.jwt.JwtUtils;
 import org.example.ssj3pj.services.StorageService;
@@ -14,6 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/videos")
 @RequiredArgsConstructor
+@Slf4j
 public class VideoController {
 
     private final JwtUtils jwtUtils;
@@ -23,9 +25,17 @@ public class VideoController {
     @PostMapping("/stream")
     public Map<String, String> streamVideo(@RequestBody VideoReq req, HttpServletRequest request) {
         Long userId = extractUserId(request);
+        log.info("[STREAM] request resultId={}, userId={}", req.resultId(), userId);
 
-        var jobResult = jobResultRepository.findByIdAndJob_User_Id(req.resultId(), userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "video not found for user"));
+        var opt = jobResultRepository.findByIdAndJob_User_Id(req.resultId(), userId);
+        if (opt.isEmpty()) {
+            jobResultRepository.findById(req.resultId()).ifPresentOrElse(jr -> {
+                Long ownerId = jr.getJob().getUser().getId();
+                log.warn("[STREAM] result exists but owner mismatch: resultId={}, ownerId={}, requesterId={}", req.resultId(), ownerId, userId);
+            }, () -> log.warn("[STREAM] result not found: resultId={}", req.resultId()));
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "video not found for user");
+        }
+        var jobResult = opt.get();
 
         String streamUrl = storage.presignGet(jobResult.getResultKey(), "video/mp4");
 

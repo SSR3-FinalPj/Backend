@@ -129,19 +129,16 @@ public class JobService {
                 data.getImageKey(), data.getLocationCode(),
                 data.getPrompttext(), data.getPlatform(), data.isClient(), nextStep
         );
+        
+        sseHub.notifyVideoReady(job.getId(), type);
 
         if (nextStep < 4) {
             // 다음 요청 트리거
-            if (data.isClient()) {
-                dynamicVideoScheduler.triggerNext(job.getId(), true, nextStep);
-            } else {
-                dynamicVideoScheduler.triggerNext(job.getId(), false, nextStep);
-            }
+            dynamicVideoScheduler.triggerNext(job.getId(), data.isClient(), nextStep);
         } else {
-            // 모든 영상 완료
+            // 모든 영상 완료 처리
             job.setStatus("COMPLETED");
             jobRepository.save(job);
-            sseHub.notifyVideoReady(job.getId(), type);
             log.info("[COMPLETE] Job {} is fully completed (4/4 results)", job.getId());
         }
         return jobResult;
