@@ -2,23 +2,21 @@ package org.example.ssj3pj.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.ssj3pj.dto.EnvironmentSummaryDto;
 import org.example.ssj3pj.dto.ResultNodeDto;
 import org.example.ssj3pj.dto.request.UserRequestData;
+import org.example.ssj3pj.dto.response.JobResultCreatedEvent;
 import org.example.ssj3pj.entity.Job;
 import org.example.ssj3pj.entity.JobResult;
 import org.example.ssj3pj.entity.User.Users;
 import org.example.ssj3pj.redis.VideoRequestService;
-import org.example.ssj3pj.scheduler.DynamicVideoScheduler;
 import org.example.ssj3pj.repository.JobRepository;
 import org.example.ssj3pj.repository.JobResultRepository;
 import org.example.ssj3pj.repository.UsersRepository;
 import org.example.ssj3pj.scheduler.DynamicVideoScheduler;
-import org.example.ssj3pj.services.ES.EnvironmentQueryService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,9 +31,7 @@ public class JobService {
     private final VideoRequestService videoRequestService;
     private final DynamicVideoScheduler dynamicVideoScheduler;
     private final SseHub sseHub;
-
-    private final EnvironmentQueryService environmentQueryService;
-    private final VideoPromptSender sender;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 최초 요청
@@ -44,14 +40,11 @@ public class JobService {
     public Job createInitialJob(String imageKey, String locationCode, String platform, String userName, String promptText, Long resultId, boolean city, String mascotImgKey) {
         Users user = usersRepository.findByUsername(userName)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userName));
-        JobResult jobResult;
-        if (resultId == null){
-            jobResult = null;
-        }
-        else {
+        JobResult jobResult = null;
+        if (resultId != null) {
             jobResult = jobResultRepository.getReferenceById(resultId);
         }
-        // 2. Job 생성 및 저장
+
         Job job = Job.builder()
                 .user(user)
                 .status("PROCESSING")
@@ -65,9 +58,8 @@ public class JobService {
                 .build();
         jobRepository.save(job);
 
-        // 최초 요청 → step=0, isClient=true
         videoRequestService.saveJobRequest(job.getId(), user.getId(), imageKey, locationCode, promptText, platform, true, 0);
-        dynamicVideoScheduler.startInitialJob(job.getId());
+        eventPublisher.publishEvent(new JobResultCreatedEvent(this, job.getId(), true));
 
         return job;
     }
@@ -94,10 +86,9 @@ public class JobService {
                 .build();
         jobRepository.save(job);
 
-        // 수정 요청 → step=0, isClient=false
         videoRequestService.saveJobRequest(job.getId(), user.getId(),
                 job.getSourceImageKey(), job.getLocationCode(), promptText, job.getPlatform(), false, 0);
-        dynamicVideoScheduler.startRevisionJob(job.getId());
+        eventPublisher.publishEvent(new JobResultCreatedEvent(this, job.getId(), false));
 
         return job;
     }
@@ -115,7 +106,6 @@ public class JobService {
                 .build();
         jobResultRepository.save(jobResult);
 
-        // Redis 상태 갱신
         UserRequestData data = videoRequestService.getJobRequest(job.getId());
         if (data == null) {
             log.warn("[COMPLETE] No redis data for job {}", job.getId());
@@ -129,10 +119,15 @@ public class JobService {
                 data.getImageKey(), data.getLocationCode(),
                 data.getPrompttext(), data.getPlatform(), data.isClient(), nextStep
         );
-        
+
         sseHub.notifyVideoReady(job.getId(), type);
 
         if (nextStep < 4) {
+            if (data.isClient()) {
+                dynamicVideoScheduler.triggerNext(job.getId(), true, nextStep);
+            } else {
+                dynamicVideoScheduler.triggerNext(job.getId(), false, nextStep);
+            }
             // 다음 요청 트리거
             dynamicVideoScheduler.triggerNext(job.getId(), data.isClient(), nextStep);
         } else {
@@ -160,8 +155,8 @@ public class JobService {
                 .build();
 
         List<Job> childJobs = jobRepository.findAllByParentResultId(jobResult.getId());
-        for (Job job : childJobs) {
-            List<JobResult> results = jobResultRepository.findAllByJobId(job.getId());
+        for (Job childJob : childJobs) {
+            List<JobResult> results = jobResultRepository.findAllByJobId(childJob.getId());
             for (JobResult jr : results) {
                 node.getChildren().add(buildResultTree(jr));
             }

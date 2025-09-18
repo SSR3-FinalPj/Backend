@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +62,7 @@ public class VideoPromptSender {
                                              String imageKey,
                                              String promptText,
                                              String platform,
+                                             boolean isInitial,
                                              boolean isClient) throws IOException {
         log.info("API START");
         Job job = jobRepository.findById(jobId)
@@ -69,7 +71,8 @@ public class VideoPromptSender {
         Prompt previousPrompt;
         PromptRequest element;
         PromptRequest sample = null;
-        if (job.getParentResult() != null){
+        if (!isInitial){
+            log.info("isInitial is False");
             beforePrompt = job.getParentResult().getJob().getPromptText();
             previousPrompt = promptRepository.findById(job.getParentResult().getJob().getId())
                     .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
@@ -107,6 +110,7 @@ public class VideoPromptSender {
             }
         }
         else{
+            log.info("isInitial is True");
             beforePrompt = null;
 
             Random random = new Random();
@@ -181,6 +185,7 @@ public class VideoPromptSender {
                 .beforePrompt(beforePrompt)
                 .element(element)
                 .sample(sample)
+                .UUID(UUID.randomUUID().toString())
                 .build();
 
         log.info("Build END");
@@ -191,20 +196,23 @@ public class VideoPromptSender {
             ResponseEntity<String> response = restTemplate.postForEntity(url, requestDto, String.class);
             JsonNode root = objectMapper.readTree(response.getBody());
             JsonNode extracted = root.path("extracted");
+            if(isClient){
+                log.info("✅ Client 확인 Prompt 저장 시작: isClient={}", isClient);
+                Prompt prompt = Prompt.builder()
+                        .job(job)
+                        .subject(extracted.path("subject").asText(null))
+                        .action(extracted.path("Action").asText(null))
+                        .style(extracted.path("Style").asText(null))
+                        .cameraPositioning(extracted.path("Camera positioning and motion").asText(null))
+                        .composition(extracted.path("Composition").asText(null))
+                        .focusAndLens(extracted.path("Focus and lens effects").asText(null))
+                        .ambiance(extracted.path("Ambiance").asText(null))
+                        .build();
 
-            Prompt prompt = Prompt.builder()
-                    .job(job)
-                    .subject(extracted.path("subject").asText(null))
-                    .action(extracted.path("Action").asText(null))
-                    .style(extracted.path("Style").asText(null))
-                    .cameraPositioning(extracted.path("Camera positioning and motion").asText(null))
-                    .composition(extracted.path("Composition").asText(null))
-                    .focusAndLens(extracted.path("Focus and lens effects").asText(null))
-                    .ambiance(extracted.path("Ambiance").asText(null))
-                    .build();
+                promptRepository.save(prompt);
+                log.info("✅ Prompt 저장 완료: jobId={}", jobId);
+            }
 
-            promptRepository.save(prompt);
-            log.info("✅ Prompt 저장 완료: jobId={}", jobId);
             log.info("✅ Bridge 응답: {}", response.getBody()  );
         } catch (Exception e) {
             log.error("❌ Bridge 전송 실패: {}", e.getMessage(), e);
