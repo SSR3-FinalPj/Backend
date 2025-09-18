@@ -58,15 +58,16 @@ public class SseHub {
 
     /** Kafka에서 호출: 메시지 + 타임스탬프만 전송 */
     public void notifyVideoReady(Long userId, String type) {
-        var payload = new SimpleMsg("VIDEO_READY", Instant.now().toString(),type);
+        // message, type, timestamp 순서로 생성해야 필드 매핑이 올바릅니다.
+        var payload = new SimpleMsg("VIDEO_READY", type, Instant.now().toString());
         send(userId, VIDEO_READY_EVENT, payload);
     }
 
     /** YouTube 업로드 완료 알림 */
     public void notifyYoutubeUploadCompleted(Long userId, String videoId) {
         var payload = Map.of(
-            "videoUrl", "https://www.youtube.com/watch?v=" + videoId,
-            "timestamp", Instant.now().toString()
+                "videoUrl", "https://www.youtube.com/watch?v=" + videoId,
+                "timestamp", Instant.now().toString()
         );
         send(userId, "youtube-upload-completed", payload);
     }
