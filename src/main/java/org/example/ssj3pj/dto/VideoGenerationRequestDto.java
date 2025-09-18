@@ -36,4 +36,6 @@ public class VideoGenerationRequestDto {
     private PromptRequest element;
 
     private PromptRequest sample;
+
+    private String UUID;
 }

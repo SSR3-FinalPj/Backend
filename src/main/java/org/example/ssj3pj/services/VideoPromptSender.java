@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,7 +71,8 @@ public class VideoPromptSender {
         Prompt previousPrompt;
         PromptRequest element;
         PromptRequest sample = null;
-        if (job.getParentResult() != null){
+        if (!isInitial){
+            log.info("isInitial is False");
             beforePrompt = job.getParentResult().getJob().getPromptText();
             previousPrompt = promptRepository.findById(job.getParentResult().getJob().getId())
                     .orElseThrow(() -> new RuntimeException("Job not found: " + jobId));
@@ -108,6 +110,7 @@ public class VideoPromptSender {
             }
         }
         else{
+            log.info("isInitial is True");
             beforePrompt = null;
 
             Random random = new Random();
@@ -182,6 +185,7 @@ public class VideoPromptSender {
                 .beforePrompt(beforePrompt)
                 .element(element)
                 .sample(sample)
+                .UUID(UUID.randomUUID().toString())
                 .build();
 
         log.info("Build END");
