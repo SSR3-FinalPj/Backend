@@ -50,7 +50,7 @@ public class DynamicVideoScheduler {
     public void triggerNext(Long jobId, boolean isInitial, int currentStep) {
         int delayMinutes = 0;
         if (!isInitial) {
-            delayMinutes = 10; // 수정 요청은 10분 간격
+            delayMinutes = 0; // 수정 요청은 10분 간격
         }
 
         taskScheduler.schedule(
@@ -78,25 +78,19 @@ public class DynamicVideoScheduler {
             return;
         }
 
-
-        if(job.getUseCitydata()){
+        // ✅ null-safe 체크
+        if (Boolean.TRUE.equals(job.getUseCitydata())) {
             log.info("Citydata used!");
             summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
             if (summary == null) {
                 log.warn("[SCHED] No ES data for locationCode={} job={}", data.getLocationCode(), jobId);
                 return;
             }
+        } else {
+            log.info("Citydata not used or null!");
         }
-        else{
-            log.info("Citydata not used!");
-        }
-        boolean isClient;
-        if(step == 1){
-            isClient = true;
-        }
-        else{
-            isClient = false;
-        }
+
+        boolean isClient = (step == 1);
 
         try {
             sender.sendEnvironmentDataToFastAPI(
@@ -114,4 +108,5 @@ public class DynamicVideoScheduler {
             log.error("[SCHED] Failed to send video request for job {}", jobId, e);
         }
     }
+
 }
