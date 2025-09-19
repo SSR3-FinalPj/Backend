@@ -88,6 +88,7 @@ public class JobService {
                 .sourceImageKey(baseJob.getSourceImageKey())
                 .promptText(promptText)
                 .parentResult(baseResult)
+                .mascotImageKey(baseJob.getMascotImageKey())  
                 .build();
         jobRepository.save(job);
 
