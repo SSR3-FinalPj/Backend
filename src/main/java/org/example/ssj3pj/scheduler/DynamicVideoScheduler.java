@@ -50,7 +50,7 @@ public class DynamicVideoScheduler {
     public void triggerNext(Long jobId, boolean isInitial, int currentStep) {
         int delayMinutes = 0;
         if (!isInitial) {
-            delayMinutes = 10; // 수정 요청은 10분 간격
+            delayMinutes = 0; // 수정 요청은 10분 간격
         }
 
         taskScheduler.schedule(
