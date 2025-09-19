@@ -141,7 +141,7 @@ public class JobService {
 
         sseHub.notifyVideoReady(job.getId(), type);
 
-        if (nextStep < 2) {
+        if (nextStep < 1) {
             if (data.isClient()) {
                 dynamicVideoScheduler.triggerNext(job.getId(), true, nextStep);
             } else {
@@ -153,7 +153,7 @@ public class JobService {
             // 모든 영상 완료 처리
             job.setStatus("COMPLETED");
             jobRepository.save(job);
-            log.info("[COMPLETE] Job {} is fully completed (2/2 results)", job.getId());
+            log.info("[COMPLETE] Job {} is fully completed (1/1 results)", job.getId());
         }
         return jobResult;
     }
