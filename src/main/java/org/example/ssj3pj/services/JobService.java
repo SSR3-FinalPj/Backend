@@ -75,29 +75,48 @@ public class JobService {
         JobResult baseResult = jobResultRepository.findById(resultId)
                 .orElseThrow(() -> new RuntimeException("Base result not found: " + resultId));
 
+        Job baseJob = baseResult.getJob();
+        baseJob.setStatus("COMPLETED");
+        jobRepository.save(baseJob);
+
+        // revision Job 생성
         Job job = Job.builder()
                 .user(user)
                 .status("PROCESSING")
-                .platform(baseResult.getJob().getPlatform())
-                .locationCode(baseResult.getJob().getLocationCode())
-                .sourceImageKey(baseResult.getJob().getSourceImageKey())
+                .platform(baseJob.getPlatform())
+                .locationCode(baseJob.getLocationCode())
+                .sourceImageKey(baseJob.getSourceImageKey())
                 .promptText(promptText)
                 .parentResult(baseResult)
                 .build();
         jobRepository.save(job);
 
-        videoRequestService.saveJobRequest(job.getId(), user.getId(),
-                job.getSourceImageKey(), job.getLocationCode(), promptText, job.getPlatform(), false, 0);
+        videoRequestService.saveJobRequest(
+                job.getId(), user.getId(),
+                job.getSourceImageKey(), job.getLocationCode(),
+                promptText, job.getPlatform(), false, 0
+        );
         eventPublisher.publishEvent(new JobResultCreatedEvent(this, job.getId(), false));
 
         return job;
     }
+
 
     /**
      * 영상 생성 완료 처리
      */
     @Transactional
     public JobResult completeJob(Job job, String resultKey, String type) {
+
+        if ("COMPLETED".equals(job.getStatus())) {
+            log.info("[COMPLETE] Job {} already completed → skip next step", job.getId());
+            return JobResult.builder()
+                    .job(job)
+                    .resultKey(resultKey)
+                    .type(type)
+                    .status("COMPLETED")
+                    .build();
+        }
         JobResult jobResult = JobResult.builder()
                 .job(job)
                 .resultKey(resultKey)
@@ -122,7 +141,7 @@ public class JobService {
 
         sseHub.notifyVideoReady(job.getId(), type);
 
-        if (nextStep < 4) {
+        if (nextStep < 2) {
             if (data.isClient()) {
                 dynamicVideoScheduler.triggerNext(job.getId(), true, nextStep);
             } else {
@@ -134,7 +153,7 @@ public class JobService {
             // 모든 영상 완료 처리
             job.setStatus("COMPLETED");
             jobRepository.save(job);
-            log.info("[COMPLETE] Job {} is fully completed (4/4 results)", job.getId());
+            log.info("[COMPLETE] Job {} is fully completed (2/2 results)", job.getId());
         }
         return jobResult;
     }

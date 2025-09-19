@@ -68,9 +68,17 @@ public class DynamicVideoScheduler {
             log.warn("[SCHED] No request data in Redis for job {}", jobId);
             return;
         }
+
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("job not found by Id : " + jobId));
         EnvironmentSummaryDto summary = null;
+
+        if ("COMPLETED".equals(job.getStatus())) {
+            log.info("[SCHED] Job {} already completed, skipping step {}", jobId, step);
+            return;
+        }
+
+
         if(job.getUseCitydata()){
             log.info("Citydata used!");
             summary = environmentQueryService.getRecentSummaryByLocation(data.getLocationCode());
