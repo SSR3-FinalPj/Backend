@@ -82,6 +82,13 @@ public class DynamicVideoScheduler {
         else{
             log.info("Citydata not used!");
         }
+        boolean isClient;
+        if(step == 1){
+            isClient = true;
+        }
+        else{
+            isClient = false;
+        }
 
         try {
             sender.sendEnvironmentDataToFastAPI(
@@ -91,7 +98,8 @@ public class DynamicVideoScheduler {
                     data.getImageKey(),
                     data.getPrompttext(),
                     data.getPlatform(),
-                        isInitial // 최초인지 수정인지 구분만 전달
+                    isInitial,
+                    isClient
             );
             log.info("[SCHED] Sent video request for job={}, step={}, isInitial={}", jobId, step, isInitial);
         } catch (Exception e) {

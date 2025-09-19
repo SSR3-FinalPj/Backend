@@ -41,7 +41,7 @@ public class JobResultService {
 
     public List<JobResultDto> getUserJobResults(Long userId) {
         return jobResultRepository.findAllByUserId(userId).stream()
-                .map(r -> new JobResultDto(r.getId(), r.getCreatedAt()))
+                .map(r -> new JobResultDto(r.getId(), r.getCreatedAt(), null))
                 .toList();
     }
     public List<JobResultDto> getUserRootNodes(Long userId) {
@@ -55,7 +55,8 @@ public class JobResultService {
                         .ifPresent(firstResult ->
                                 resultDtos.add(new JobResultDto(
                                         firstResult.getId(),
-                                        firstResult.getCreatedAt()
+                                        firstResult.getCreatedAt(),
+                                        job.getLocationCode()
                                 ))
                         );
             }

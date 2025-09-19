@@ -36,4 +36,7 @@ public class VideoGenerationRequestDto {
     private PromptRequest element;
 
     private PromptRequest sample;
+
+    @JsonProperty("UUID")
+    private String UUID;
 }
