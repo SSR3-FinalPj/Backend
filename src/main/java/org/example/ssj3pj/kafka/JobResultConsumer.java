@@ -26,15 +26,17 @@ public class JobResultConsumer {
         try {
             MediaCallbackDto callbackDto = objectMapper.readValue(message, MediaCallbackDto.class);
             log.info("Consumed media callback: {}", callbackDto);
-            Job job = jobRepository.findBySourceImageKey(callbackDto.getImageKey());
+
+            // ✅ 최신 Job만 가져오기
+            Job job = jobRepository.findFirstBySourceImageKeyOrderByCreatedAtDesc(callbackDto.getImageKey())
+                    .orElse(null);
 
             if (job == null) {
                 log.warn("Job not found for image key: {}", callbackDto.getImageKey());
-                return; // or throw an exception
+                return;
             }
 
             jobService.completeJob(job, callbackDto.getResultKey(), callbackDto.getType());
-
             log.info("Successfully processed media callback for job ID: {}", job.getId());
 
         } catch (JsonProcessingException e) {

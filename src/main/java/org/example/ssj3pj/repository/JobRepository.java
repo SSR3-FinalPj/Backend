@@ -20,4 +20,6 @@ public interface JobRepository extends JpaRepository<Job, Long> {
             "WHERE j.user.id = :userId " +
             "AND j.parentResult IS NULL")
     List<Job> findAllByUserIdAndNoParent(@Param("userId") Long userId);
+    Optional<Job> findFirstBySourceImageKeyOrderByCreatedAtDesc(String sourceImageKey);
+
 }
