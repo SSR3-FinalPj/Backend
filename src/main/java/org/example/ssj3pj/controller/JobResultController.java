@@ -88,13 +88,13 @@ public class JobResultController {
     @Tag(name = "dashboard", description = "YouTube+Reddit 업로드 완료된 result_id 조회")
     @GetMapping("/both/{result_id}")
     public ResponseEntity<BothResultDto> getBothDatasFromResultId(HttpServletRequest request, @RequestParam Long resultId) throws IOException {
-        log.info("일단 요청은 들어온듯");
+
         String auth = request.getHeader("Authorization");
         if (auth == null || !auth.startsWith("Bearer ")) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "missing bearer token");
         }
         String token = auth.substring(7);
-        log.info("토큰도 정상인듯");
+
         String userName;
         try {
             userName = jwtUtils.getUserName(token);

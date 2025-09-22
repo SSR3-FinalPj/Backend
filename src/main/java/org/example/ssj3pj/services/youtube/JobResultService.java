@@ -87,18 +87,18 @@ public class JobResultService {
     }
     public BothResultDto getBothDatasFromResultId(String userName, Long resultId) throws IOException {
 
-        log.info("서비스까지 들어온듯");
+
         JobResult metadata = jobResultRepository.findById(resultId)
                 .orElseThrow(() -> new RuntimeException("JobResult metadata not found for user: " + userName));
-        log.info("메타데이터도 정상인듯");
+
         String postId = metadata.getRdUpload();
         String videoId = metadata.getYtUpload();
-        log.info("확실히 정상인듯");
+
         RedditContentDetailDto redditDetail = contentsService.getContentDetailByPostId(postId, userName);
         YoutubeContentDetailDto youtubeDetail = contentsService.getContentDetailByVideoId(videoId, userName);
         JsonNode aiRDResponse = contentsService.analyzeRDComments(postId, userName);
         JsonNode aiYTResponse = contentsService.analyzeComments(videoId, userName);
-        log.info("위에껀 검증된건디");
+
         return BothResultDto.builder()
                 .redditDetail(redditDetail)
                 .youtubeDatil(youtubeDetail)
