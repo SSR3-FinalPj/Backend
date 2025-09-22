@@ -77,7 +77,7 @@ public class YoutubeJobUploadService {
                     .resultId(resultId)
                     .build();
 
-            jobResult.setYtUpload(videoId);
+            jobResultRepository.updateYoutubeUpload(resultId, videoId);
             // 6. SSE 알림 발송
              sseHub.notifyYoutubeUploadCompleted(userId, videoId);
             

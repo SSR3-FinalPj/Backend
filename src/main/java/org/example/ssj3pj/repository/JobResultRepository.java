@@ -2,8 +2,11 @@ package org.example.ssj3pj.repository;
 
 import org.example.ssj3pj.entity.JobResult;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +18,6 @@ public interface JobResultRepository extends JpaRepository<JobResult, Long> {
             "JOIN jr.job j " +
             "WHERE j.user.id = :userId")
     List<JobResult> findAllByUserId(Long userId);
-//    Optional<JobResult> findById(Long resultId);
 
     Optional<JobResult> findByIdAndJob_User_Id(Long resultId, Long userId);
 
@@ -31,5 +33,18 @@ public interface JobResultRepository extends JpaRepository<JobResult, Long> {
             "AND jr.ytUpload IS NOT NULL " +
             "AND jr.rdUpload IS NOT NULL")
     List<Long> findResultIdsUploadedToBoth(Long userId);
+
     JobResult findByResultKey(String resultKey);
+
+    // ✅ Reddit 업로드만 업데이트
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE JobResult jr SET jr.rdUpload = :postId WHERE jr.id = :resultId")
+    void updateRedditUpload(@Param("resultId") Long resultId, @Param("postId") String postId);
+
+    // ✅ YouTube 업로드만 업데이트
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query("UPDATE JobResult jr SET jr.ytUpload = :videoId WHERE jr.id = :resultId")
+    void updateYoutubeUpload(@Param("resultId") Long resultId, @Param("videoId") String videoId);
 }

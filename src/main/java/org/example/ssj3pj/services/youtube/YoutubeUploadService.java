@@ -102,7 +102,6 @@ public class YoutubeUploadService {
         return uploadUrl;
     }
 
-    /** 청크 업로드 루프 (308/401/네트워크 오류 처리 + 오프셋 재탐색) */
     private String putChunksWithResume(String uploadUrl,
                                        String accessTokenInitial,
                                        Long userId,

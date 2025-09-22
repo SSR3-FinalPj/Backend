@@ -26,7 +26,6 @@ public class RedditJobUploadService {
     private final UsersRepository usersRepository;
     private final SseHub sseHub;
 
-    // ✅ S3 bucket 이름을 application.yml에서 주입
     @Value("${app.s3.bucket:ssr-ai-video}")
     private String s3Bucket;
 
@@ -41,8 +40,6 @@ public class RedditJobUploadService {
             // 1. 권한 확인 및 데이터 조회
             JobResult jobResult = validateAndGetJobResult(resultId, userId);
 
-            log.info("📤 Reddit 업로드 시작: resultId={}, userId={}, subreddit={}, kind={}",
-                    resultId, userId, request.getSubreddit(), jobResult.getType());
 
             // 2. 썸네일 key (비디오일 경우만 사용)
             String posterKey = null;
@@ -62,7 +59,7 @@ public class RedditJobUploadService {
             );
 
             // ✅ DB에 Reddit postId 저장
-            jobResult.setRdUpload(postId);
+            jobResultRepository.updateRedditUpload(resultId, postId);
 
             // ✅ 표준 Reddit URL (/r/{subreddit}/comments/{postId})
             String postUrl = "https://www.reddit.com/r/" + request.getSubreddit() + "/comments/" + postId;
