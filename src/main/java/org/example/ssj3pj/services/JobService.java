@@ -110,6 +110,8 @@ public class JobService {
     public JobResult completeJob(Job job, String resultKey, String type) {
 
         if ("COMPLETED".equals(job.getStatus())) {
+            sseHub.notifyVideoReady(job.getId(), type);
+
             log.info("[COMPLETE] Job {} already completed → skip next step", job.getId());
             return JobResult.builder()
                     .job(job)
