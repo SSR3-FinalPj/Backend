@@ -144,7 +144,7 @@ public class JobService {
 
         sseHub.notifyVideoReady(job.getId(), type);
 
-        if (nextStep < 1) {
+        if (nextStep < 3) {
             if (data.isClient()) {
                 dynamicVideoScheduler.triggerNext(job.getId(), true, nextStep);
             } else {
